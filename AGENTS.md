@@ -1,0 +1,104 @@
+# AGENTS.md
+
+Guidance for AI coding agents working in this repository.
+
+## What this is
+
+`tool-box` is a modular collection of server and macOS automation scripts, background monitors, and system utilities. Each tool lives in an isolated folder under `tools/<name>/` and is dispatched through the unified `./toolbox` CLI.
+
+---
+
+## Commands
+
+### Global CLI (`./toolbox`)
+- `./toolbox list` — List all installed tools and their descriptions.
+- `./toolbox new <tool-name>` — Scaffold a new tool from `tools/_template/`.
+- `./toolbox <tool-name> [action|args]` — Dispatch a command to a specific tool.
+
+### Mac Monitor (`mac-monitor`)
+- `./toolbox mac-monitor report [YYYY-MM-DD]` — Generate the aggregated CPU and Memory report via AWK (defaults to today).
+- `./toolbox mac-monitor status` — Check if the monitor daemon and LaunchAgent are active, sample count, and log file size.
+- `./toolbox mac-monitor logs [-f]` — View the latest CSV log lines (`-f` to follow in real-time).
+- `./toolbox mac-monitor start` — Start the collector daemon in the background.
+- `./toolbox mac-monitor stop` — Stop the collector daemon.
+- `./toolbox mac-monitor restart` — Restart the collector daemon.
+- `./toolbox mac-monitor install-service` — Install and load the macOS LaunchAgent (`~/Library/LaunchAgents/com.guilhermesalviano.toolbox-monitor.plist`).
+- `./toolbox mac-monitor uninstall-service` — Unload and remove the LaunchAgent.
+
+---
+
+## Repository layout
+
+- `toolbox` — Master executable CLI dispatcher. Inspects `tools/<name>/` and routes to `manage.sh` or `run.sh`.
+- `manage.sh` — Root-level backward compatibility shortcut forwarding to `./toolbox mac-monitor "$@"`.
+- `tools/` — Modular tools directory:
+  - `tools/mac-monitor/` — Continuous Mac CPU & Memory monitor:
+    - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
+    - `report.sh` — AWK script calculating daily mean CPU, max CPU, mean Memory, max Memory, and sample count.
+    - `manage.sh` — Tool-specific controller (`start`, `stop`, `status`, `report`, `logs`, `install-service`, `uninstall-service`).
+    - `launchd/com.guilhermesalviano.toolbox-monitor.plist` — LaunchAgent definition for macOS boot/login persistence.
+    - `README.md` — Tool documentation (first `# Title` line is shown in `./toolbox list`).
+  - `tools/_template/` — Starter boilerplate for new tools (`run.sh` and `README.md`).
+- `logs/` — Centralized log directory (gitignored):
+  - `glances-YYYY-MM-DD.csv` — Daily CSV metric files.
+  - `monitor.pid` — Process ID file of the active collector.
+  - `monitor-service.log` / `monitor-service-err.log` — Daemon stdout/stderr logs.
+- `.venv/` — Shared Python virtual environment (gitignored) containing `glances`, `psutil`, etc.
+- `.gitignore` — Ignores `logs/`, `.venv/`, `__pycache__/`, `.DS_Store`.
+- `README.md` — User documentation in Portuguese.
+- `AGENTS.md` — This file.
+
+---
+
+## Runtime Constraints & Conventions
+
+1. **Log File Contract (`mac-monitor`)**:
+   The CSV log files must be written to:
+   `logs/glances-YYYY-MM-DD.csv`
+   With the exact header format:
+   ```csv
+   now.iso,now.custom,cpu.total,mem.used,mem.percent
+   ```
+   - `$1`: `now.iso` (ISO 8601 timestamp)
+   - `$2`: `now.custom` (Formatted local timestamp)
+   - **`$3`**: **`cpu.total` (%)**
+   - `$4`: `mem.used` (Bytes)
+   - **`$5`**: **`mem.percent` (%)**
+   
+   **CRITICAL**: Do NOT change column positions or header names. External scripts and the user's manual AWK one-liners rely directly on `$3` being CPU% and `$5` being Memory%.
+
+2. **Daily Rotation**:
+   The collector process must handle date changes at midnight automatically. When the date changes:
+   - Close and flush the previous day's CSV file.
+   - Open `logs/glances-<new-date>.csv`.
+   - Write the CSV header if the new file is empty.
+   - Flush every sample immediately (`f.flush()`) so real-time reports always reflect current data.
+
+3. **Tool Structure**:
+   Every tool inside `tools/<name>/` must:
+   - Be self-contained in its own subdirectory.
+   - Provide an executable entrypoint: `manage.sh` (for daemons/services with subcommands) or `run.sh` (for simple runnable scripts).
+   - Have a `README.md` whose first line is `# <Tool Name>` so `./toolbox list` can auto-discover it.
+   - Use the shared Python virtual environment at `../../.venv/bin/python3` if Python is required.
+
+4. **macOS LaunchAgents**:
+   - Label naming convention: `com.guilhermesalviano.<service-name>`.
+   - Stored in `tools/<name>/launchd/` and loaded into `${HOME}/Library/LaunchAgents/`.
+   - Set `WorkingDirectory` to the `tool-box` project root.
+   - Use absolute paths in `ProgramArguments` pointing to `.venv/bin/python3` and the tool script.
+
+---
+
+## Adding a New Tool
+
+1. Scaffold using the CLI:
+   ```bash
+   ./toolbox new <tool-name>
+   ```
+2. Implement your logic in `tools/<tool-name>/run.sh` (or create Python/Bash scripts in that folder).
+3. Update `tools/<tool-name>/README.md` with description and instructions.
+4. Verify with:
+   ```bash
+   ./toolbox list
+   ./toolbox <tool-name>
+   ```
