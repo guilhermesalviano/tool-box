@@ -15,6 +15,23 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox new <tool-name>` — Scaffold a new tool from `tools/_template/`.
 - `./toolbox <tool-name> [action|args]` — Dispatch a command to a specific tool.
 
+### Torrent DL (`torrent-dl`)
+- `./toolbox torrent-dl '<link>'` — Download a torrent from a magnet link, a `.torrent` URL, or a local `.torrent` file, via `aria2c` (must be installed separately: `brew install aria2` / `apt-get install aria2`).
+- `./toolbox torrent-dl '<link>' -o <dir>` — Set the destination directory (default `~/Downloads/torrents`).
+- `./toolbox torrent-dl '<link>' -s <minutes>` — Keep seeding for N minutes after completion (default `0`, no seeding).
+
+### Disk Cleaner (`disk-cleaner`)
+- `./toolbox disk-cleaner` — Interactively clean caches, trash, and temp files on macOS or Linux (asks per step).
+- `./toolbox disk-cleaner --yes|--all` — Assume "yes" for every step, except the Docker steps (see below), which always prompt.
+- `./toolbox disk-cleaner --dry-run` — Preview what would be cleaned without deleting anything.
+- `./toolbox disk-cleaner --docker-volumes` — Also offer to prune unused Docker volumes (off by default; may contain database data).
+
+### Aliases (`aliases`)
+- `./toolbox aliases install` — Add Tool-Box shell aliases (`tb`, `tb-clean`, `tb-mon-*`, etc.) to `~/.zshrc`/`~/.bashrc`/`~/.bash_profile`, detected from `$SHELL`. Idempotent, marked by `# >>> tool-box aliases >>>` / `# <<< tool-box aliases <<<`.
+- `./toolbox aliases uninstall` — Remove that marked block.
+- `./toolbox aliases status` — Show which rc files have the aliases installed.
+- `./toolbox aliases list` — List all available aliases and what they expand to.
+
 ### Mac Monitor (`mac-monitor`)
 - `./toolbox mac-monitor report [YYYY-MM-DD]` — Generate the aggregated CPU and Memory report via AWK (defaults to today).
 - `./toolbox mac-monitor status` — Check if the monitor daemon and LaunchAgent are active, sample count, and log file size.
@@ -32,6 +49,16 @@ Guidance for AI coding agents working in this repository.
 - `toolbox` — Master executable CLI dispatcher. Inspects `tools/<name>/` and routes to `manage.sh` or `run.sh`.
 - `manage.sh` — Root-level backward compatibility shortcut forwarding to `./toolbox mac-monitor "$@"`.
 - `tools/` — Modular tools directory:
+  - `tools/torrent-dl/` — Torrent downloader (magnet link, `.torrent` URL, or local `.torrent` file) via `aria2c`:
+    - `run.sh` — Entry point; `-o/--output`, `-s/--seed-minutes` flags.
+    - `README.md` — Tool documentation.
+  - `tools/disk-cleaner/` — Cross-platform (macOS/Linux) disk space cleaner:
+    - `run.sh` — Interactive cleanup script; asks per step, `-y`/`--all`/`--dry-run`/`--docker-volumes` flags.
+    - `README.md` — Tool documentation.
+  - `tools/aliases/` — Shell alias installer for the Tool-Box CLI:
+    - `aliases.sh` — Self-locating alias definitions (sourced, not executed; works from bash and zsh).
+    - `manage.sh` — Tool-specific controller (`install`, `uninstall`, `status`, `list`).
+    - `README.md` — Tool documentation.
   - `tools/mac-monitor/` — Continuous Mac CPU & Memory monitor:
     - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
     - `report.sh` — AWK script calculating daily mean CPU, max CPU, mean Memory, max Memory, and sample count.

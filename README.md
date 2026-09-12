@@ -12,6 +12,19 @@ A estrutura foi projetada para suportar múltiplos scripts e ferramentas de form
 tool-box/
 ├── toolbox                     # CLI mestre para listar, criar e executar qualquer ferramenta
 ├── tools/                      # Diretório de ferramentas modulares e isoladas
+│   ├── torrent-dl/             # Ferramenta: Download de torrent via aria2c
+│   │   ├── run.sh              # Script de download (-o/--output, -s/--seed-minutes)
+│   │   └── README.md           # Documentação específica do torrent-dl
+│   │
+│   ├── disk-cleaner/           # Ferramenta: Liberação de espaço em disco (macOS/Linux)
+│   │   ├── run.sh              # Script interativo de limpeza (-y/--dry-run/--docker-volumes)
+│   │   └── README.md           # Documentação específica do disk-cleaner
+│   │
+│   ├── aliases/                # Ferramenta: Atalhos de shell para o Tool-Box
+│   │   ├── aliases.sh          # Definição dos atalhos (autolocalizável, bash/zsh)
+│   │   ├── manage.sh           # install/uninstall/status/list
+│   │   └── README.md           # Documentação específica dos aliases
+│   │
 │   ├── mac-monitor/            # Ferramenta: Monitor de Uso de CPU e Memória (Glances)
 │   │   ├── collector.py        # Coletor contínuo (streaming Glances -> CSV)
 │   │   ├── report.sh           # Script AWK para agregação de estatísticas do dia
@@ -54,6 +67,56 @@ Qualquer ferramenta dentro de `tools/<nome>` pode ser executada diretamente:
 ```bash
 ./toolbox <nome-da-ferramenta> [ação/argumentos]
 ```
+
+---
+
+## 🧲 Ferramenta: `torrent-dl`
+
+Baixa um torrent (link magnet, URL de `.torrent` ou arquivo `.torrent`
+local) via `aria2c`. Requer `aria2` instalado (`brew install aria2` no
+macOS, `apt-get install aria2` no Linux).
+
+```bash
+./toolbox torrent-dl 'magnet:?xt=urn:btih:...'
+./toolbox torrent-dl 'https://exemplo.com/arquivo.torrent' -o ~/Downloads
+```
+
+Veja `tools/torrent-dl/README.md` para todas as opções.
+
+---
+
+## 🧹 Ferramenta: `disk-cleaner`
+
+Libera espaço em disco em macOS ou Linux, limpando caches, lixeira e
+arquivos temporários seguros. Pede confirmação antes de cada etapa.
+
+```bash
+# Interativo (pergunta em cada etapa):
+./toolbox disk-cleaner
+
+# Assumir "sim" em tudo, exceto nas etapas do Docker (que sempre perguntam):
+./toolbox disk-cleaner --yes
+
+# Ver o que seria limpo, sem apagar nada:
+./toolbox disk-cleaner --dry-run
+```
+
+Veja `tools/disk-cleaner/README.md` para a lista completa de etapas.
+
+---
+
+## 🔤 Ferramenta: `aliases`
+
+Instala atalhos de shell (`tb`, `tb-clean`, `tb-mon-status`, etc.) para os
+comandos mais usados do Tool-Box.
+
+```bash
+./toolbox aliases install   # adiciona ao ~/.zshrc ou ~/.bashrc/.bash_profile
+./toolbox aliases list      # lista os atalhos disponíveis
+./toolbox aliases uninstall # remove os atalhos
+```
+
+Veja `tools/aliases/README.md` para a lista completa de atalhos.
 
 ---
 
