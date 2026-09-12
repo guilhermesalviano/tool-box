@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+#
+# toolbox - CLI principal para gerenciamento e execução das ferramentas do Tool-Box
+#
+
+set -e
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_DIR="${DIR}/tools"
+
+usage() {
+  echo "Uso: ./toolbox <comando|ferramenta> [argumentos...]"
+  echo ""
+  echo "Comandos disponíveis:"
+  echo "  list                  Lista todas as ferramentas disponíveis"
+  echo "  new <nome>            Cria uma nova ferramenta a partir do template"
+  echo "  help                  Exibe esta mensagem de ajuda"
+  echo ""
+  echo "Executar uma ferramenta:"
+  echo "  ./toolbox <ferramenta> [ação/argumentos]"
+  echo ""
+  echo "Exemplos:"
+  echo "  ./toolbox list"
+  echo "  ./toolbox mac-monitor status"
+  echo "  ./toolbox mac-monitor report"
+  echo "  ./toolbox mac-monitor report 2026-09-12"
+  echo "  ./toolbox new disk-cleaner"
+  exit 0
+}
+
+cmd_list() {
+  echo "=========================================="
+  echo "Ferramentas instaladas no Tool-Box"
+  echo "=========================================="
+  if [[ ! -d "${TOOLS_DIR}" ]]; then
+    echo "Nenhuma ferramenta encontrada em ${TOOLS_DIR}."
+    return 0
+  fi
+
+  for tool_path in "${TOOLS_DIR}"/*; do
+    if [[ -d "${tool_path}" ]]; then
+      local tool_name
+      tool_name=$(basename "${tool_path}")
+      if [[ "${tool_name}" == _* ]]; then
+        continue
+      fi
+
+      local desc="Sem descrição"
+      if [[ -f "${tool_path}/README.md" ]]; then
+        desc=$(grep -m 1 -E '^# ' "${tool_path}/README.md" | sed 's/^# //' || echo "Sem descrição")
+      fi
+      printf "  %-20s - %s\n" "${tool_name}" "${desc}"
+    fi
+  done
+  echo "=========================================="
+}
+
+cmd_new() {
+  local tool_name="${1:-}"
+  if [[ -z "${tool_name}" ]]; then
+    echo "Erro: Informe o nome da nova ferramenta." >&2
+    echo "Exemplo: ./toolbox new backup-system" >&2
+    exit 1
+  fi
+
+  local target_dir="${TOOLS_DIR}/${tool_name}"
+  if [[ -e "${target_dir}" ]]; then
+    echo "Erro: A ferramenta '${tool_name}' já existe em ${target_dir}." >&2
+    exit 1
+  fi
+
+  echo "Criando nova ferramenta '${tool_name}' a partir do template..."
+  cp -r "${TOOLS_DIR}/_template" "${target_dir}"
+  echo "Ferramenta criada com sucesso em ${target_dir}!"
+  echo "Edite ${target_dir}/run.sh e ${target_dir}/README.md para começar."
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+fi
+
+ACTION="$1"
+shift
+
+case "${ACTION}" in
+  list|--list|-l)
+    cmd_list
+    ;;
+  new|create)
+    cmd_new "$@"
+    ;;
+  help|--help|-h)
+    usage
+    ;;
+  *)
+    TOOL_PATH="${TOOLS_DIR}/${ACTION}"
+    if [[ -d "${TOOL_PATH}" ]]; then
+      if [[ -x "${TOOL_PATH}/manage.sh" ]]; then
+        exec "${TOOL_PATH}/manage.sh" "$@"
+      elif [[ -x "${TOOL_PATH}/run.sh" ]]; then
+        exec "${TOOL_PATH}/run.sh" "$@"
+      elif [[ -x "${TOOL_PATH}/${ACTION}.sh" ]]; then
+        exec "${TOOL_PATH}/${ACTION}.sh" "$@"
+      elif [[ -x "${TOOL_PATH}/${ACTION}.py" ]]; then
+        exec "${DIR}/.venv/bin/python3" "${TOOL_PATH}/${ACTION}.py" "$@"
+      else
+        echo "Erro: Nenhum script executável (manage.sh, run.sh) encontrado em ${TOOL_PATH}" >&2
+        exit 1
+      fi
+    else
+      echo "Erro: Ferramenta '${ACTION}' não encontrada." >&2
+      echo "Execute './toolbox list' para ver as ferramentas disponíveis." >&2
+      exit 1
+    fi
+    ;;
+esac
