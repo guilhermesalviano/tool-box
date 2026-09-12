@@ -47,7 +47,6 @@ Guidance for AI coding agents working in this repository.
 ## Repository layout
 
 - `toolbox` — Master executable CLI dispatcher. Inspects `tools/<name>/` and routes to `manage.sh` or `run.sh`.
-- `manage.sh` — Root-level backward compatibility shortcut forwarding to `./toolbox mac-monitor "$@"`.
 - `tools/` — Modular tools directory:
   - `tools/torrent-dl/` — Torrent downloader (magnet link, `.torrent` URL, or local `.torrent` file) via `aria2c`:
     - `run.sh` — Entry point; `-o/--output`, `-s/--seed-minutes` flags.

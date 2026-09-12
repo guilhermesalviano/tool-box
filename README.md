@@ -40,8 +40,6 @@ tool-box/
 ├── logs/                       # Diretório central de logs
 │   ├── glances-YYYY-MM-DD.csv  # Arquivos diários gerados pelo mac-monitor
 │   └── ...
-│
-├── manage.sh                   # Atalho de compatibilidade para ./toolbox mac-monitor
 ├── .venv/                      # Ambiente virtual Python gerenciado
 ├── .gitignore
 └── README.md

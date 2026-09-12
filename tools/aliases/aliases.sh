@@ -29,11 +29,22 @@ _tb_root="$(cd "$(dirname "${_tb_aliases_self}")/../.." && pwd)"
 alias tb="${_tb_root}/toolbox"
 alias tbl="tb list"
 alias tbn="tb new"
+alias ptui="pnpm --filter koris-agent app --tui"
+alias pb="pnpm build"
+alias pt="pnpm test"
+alias pa="pnpm app"
+alias gs="git status"
+alias gd="git diff"
+alias ga="git add ."
 
 # --- Disk Cleaner ----------------------------------------------------------
 alias tb-clean="tb disk-cleaner"
 alias tb-clean-all="tb disk-cleaner --yes"
 alias tb-clean-dry="tb disk-cleaner --dry-run"
+
+# --- Torrent DL ------------------------------------------------------------
+alias tb-torrent="tb torrent-dl"
+alias tb-dl="tb torrent-dl"
 
 # --- Mac Monitor -----------------------------------------------------------
 alias tb-mon="tb mac-monitor"

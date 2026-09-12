@@ -30,6 +30,8 @@ ele não duplica a entrada no seu arquivo de shell.
 | `tb-clean`          | `./toolbox disk-cleaner`             |
 | `tb-clean-all`      | `./toolbox disk-cleaner --yes`       |
 | `tb-clean-dry`      | `./toolbox disk-cleaner --dry-run`   |
+| `tb-torrent`        | `./toolbox torrent-dl`               |
+| `tb-dl`             | `./toolbox torrent-dl`               |
 | `tb-mon`            | `./toolbox mac-monitor`              |
 | `tb-mon-status`     | `./toolbox mac-monitor status`       |
 | `tb-mon-report`     | `./toolbox mac-monitor report`       |
