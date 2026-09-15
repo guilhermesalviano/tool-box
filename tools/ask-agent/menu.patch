@@ -86,7 +86,7 @@
      ? Math.min(contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight), panel.height - Style.gapsOut * 2)
      : Math.min(contentMargin * 2 + headerHeight + contentSpacing + visibleRowsHeight, panel.height - Style.gapsOut * 2)
 
-@@ -277,6 +328,17 @@
+@@ -277,6 +328,26 @@
        script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
        icon: "\udb81\udc0b",
        actionFor: function(value) { return "omarchy-powerprofiles-set autodetect " + Util.shellQuote(value) }
@@ -97,14 +97,71 @@
 +    // so the built-in "apps" provider silently merges zero rows. This walks
 +    // desktop files directly instead of depending on that broken proxy.
 +    "programs": {
-+      script: "declare -A seen; for dir in \"$HOME/.local/share/applications\" /usr/local/share/applications /usr/share/applications; do [[ -d $dir ]] || continue; for f in \"$dir\"/*.desktop; do [[ -f $f ]] || continue; id=$(basename \"$f\" .desktop); [[ -n ${seen[$id]:-} ]] && continue; seen[$id]=1; IFS=$'\\t' read -r name nodisplay hidden type < <(awk -F= -v OFS='\\t' '/^\\[Desktop Entry\\]/{s=1;next} /^\\[/{s=0} s&&/^Name=/&&!name{name=substr($0,6)} s&&/^NoDisplay=/{nodisplay=substr($0,11)} s&&/^Hidden=/{hidden=substr($0,8)} s&&/^Type=/{type=substr($0,6)} END{print name, nodisplay, hidden, type}' \"$f\"); [[ -z $type || $type == Application ]] || continue; [[ $nodisplay == true || $hidden == true ]] && continue; [[ -z $name ]] && name=$id; printf '%s\\t%s\\t%s\\n' \"$name\" \"$id\" \"\"; done; done",
++      // A single awk pass per file does its own NoDisplay/Hidden/Type
++      // filtering and emits the final row (or nothing) directly \u2014 bash
++      // `read -d$'\t'` was tried first but silently collapses adjacent tabs
++      // from empty fields (NoDisplay=/Hidden= are usually unset), shifting
++      // every later column left.
++      script: "declare -A seen; for dir in \"$HOME/.local/share/applications\" /usr/local/share/applications /usr/share/applications; do [[ -d $dir ]] || continue; for f in \"$dir\"/*.desktop; do [[ -f $f ]] || continue; id=$(basename \"$f\" .desktop); [[ -n ${seen[$id]:-} ]] && continue; seen[$id]=1; awk -F= -v id=\"$id\" '/^\\[Desktop Entry\\]/{s=1;next} /^\\[/{s=0} s&&/^Name=/&&!name{name=substr($0,6)} s&&/^NoDisplay=/{nodisplay=substr($0,11)} s&&/^Hidden=/{hidden=substr($0,8)} s&&/^Type=/{type=substr($0,6)} s&&/^Icon=/&&!icon{icon=substr($0,6)} END{if(type!=\"\"&&type!=\"Application\")exit; if(nodisplay==\"true\"||hidden==\"true\")exit; if(name==\"\")name=id; printf \"%s\\t%s\\t%s\\n\", name, id, icon}' \"$f\"; done; done",
 +      icon: "\udb80\udc3b",
++      // Renders each row as a real app icon (via Quickshell.iconPath, see
++      // fallbackIconSource) instead of the shared glyph above \u2014 value's 3rd
++      // column carries the desktop entry's Icon= name/path.
++      rowKind: "app",
 +      volatile: true,
 +      actionFor: function(value) { return "uwsm-app -- gtk-launch " + Util.shellQuote(value) }
      }
    })
 
-@@ -559,6 +621,7 @@
+@@ -284,6 +355,23 @@
+     return MenuModel.slugify(value)
+   }
+
++  // Standalone icon lookup for when root.appLibrary is unavailable (see the
++  // "programs" provider above): Quickshell.iconPath is a global singleton
++  // method, not something routed through the plugin's scoped shell, so it
++  // works even though the appLibrary proxy itself doesn't. Trimmed down from
++  // AppLibrary.qml's iconSource — this skips its bash-scanned iconIndex
++  // fallback, so an icon file outside the system theme (freshly installed,
++  // this shell instance's icon cache predates it) may not resolve.
++  function fallbackIconSource(icon) {
++    var value = String(icon || "")
++    if (value.length === 0) return Quickshell.iconPath("application-x-executable", true)
++    if (value.indexOf("file://") === 0 || value.indexOf("image://") === 0) return value
++    if (value.charAt(0) === "/") return Util.fileUrl(value)
++    var themed = Quickshell.iconPath(value, true)
++    if (themed.length > 0) return themed
++    return Quickshell.iconPath("application-x-executable", true)
++  }
++
+   // The apps provider is QML-native: rows come from the shared AppLibrary
+   // (DesktopEntries) instead of a bash enumeration, so they carry image
+   // icons, launch feedback, and uninstall support like the launcher.
+@@ -353,6 +441,10 @@
+     var lines = String(rows || "").split("\n")
+     var providerRows = []
+     var takenIds = ({})
++    // "programs" (the Apps-submenu bash fallback) repurposes column 3 as the
++    // desktop entry's Icon= value and renders as a real app icon instead of
++    // the shared glyph other providers (fonts, power-profiles) use.
++    var isAppKind = spec.rowKind === "app"
+     for (var i = 0; i < lines.length; i++) {
+       var line = lines[i].trim()
+       if (!line) continue
+@@ -371,8 +463,10 @@
+       providerRows.push({
+         id: rowId,
+         parent: menuId,
+-        kind: "action",
+-        icon: (value === current) ? "✓" : (spec.icon || ""),
++        kind: isAppKind ? "app" : "action",
++        icon: isAppKind ? "" : ((value === current) ? "✓" : (spec.icon || "")),
++        appIcon: isAppKind ? current : "",
++        appId: isAppKind ? value : "",
+         label: label,
+         title: "",
+         target: "",
+@@ -559,6 +653,7 @@
    }
 
    function rebuildDisplay() {
@@ -112,7 +169,7 @@
      if (root.dmenuActive) {
        root.rebuildDmenuDisplay()
        return
-@@ -627,6 +690,15 @@
+@@ -627,6 +722,15 @@
        }
      }
 
@@ -128,7 +185,7 @@
      for (var k = 0; k < rows.length; k++) displayModel.append(rows[k])
      layoutSerial += 1
 
-@@ -635,6 +707,7 @@
+@@ -635,6 +739,7 @@
      else if (selectedIndex < 0) selectedIndex = 0
 
      Qt.callLater(function() {
@@ -136,7 +193,7 @@
        if (displayModel.count > 0) root.revealCursor()
      })
    }
-@@ -730,6 +803,16 @@
+@@ -730,6 +835,16 @@
      if (index < 0 || index >= displayModel.count) return
 
      var row = displayModel.get(index)
@@ -153,7 +210,7 @@
      if (row.kind === "menu" || row.kind === "link") {
        root.setActiveMenu(row.target || row.itemId, true, fromPointer)
      } else if (row.kind === "app") {
-@@ -793,6 +876,7 @@
+@@ -793,6 +908,7 @@
    }
 
    function openExistingMenu(initialMenu) {
@@ -161,7 +218,7 @@
      requestSerial += 1
      mode = "menu"
      requestActive = false
-@@ -817,6 +901,7 @@
+@@ -817,6 +933,7 @@
    }
 
    function openDmenu(payload) {
@@ -169,7 +226,7 @@
      requestSerial += 1
      mode = payload.mode === "input" ? "input" : "select"
      dmenuPrompt = String(payload.prompt || (mode === "input" ? "Input" : "Select"))
-@@ -852,6 +937,7 @@
+@@ -852,6 +969,7 @@
 
    function openRoute(initialMenu) {
      var id = root.resolveRoute(initialMenu)
@@ -177,7 +234,7 @@
      var entry = root.items[id]
      // If the resolved id is an action (i.e. the user invoked an alias for
      // a leaf, e.g. `omarchy menu summon screenrecord-stop`), run it directly
-@@ -1069,7 +1155,8 @@
+@@ -1069,7 +1187,8 @@
          id: keyCatcher
          anchors.fill: parent
          z: root.deleteConfirmOpen ? 20 : 0
@@ -187,7 +244,7 @@
 
          Keys.priority: Keys.BeforeItem
          Keys.onPressed: function(event) {
-@@ -1136,7 +1223,23 @@
+@@ -1136,7 +1255,23 @@
          }
        }
 
@@ -211,3 +268,12 @@
          anchors.fill: parent
          anchors.topMargin: card.contentTopInset
          anchors.rightMargin: card.contentRightInset
+@@ -1260,7 +1395,7 @@
+                 // PNG icons upscaled and blurry on HiDPI displays.
+                 sourceSize.width: width * Screen.devicePixelRatio
+                 sourceSize.height: height * Screen.devicePixelRatio
+-                source: row.isApp && root.appLibrary ? root.appLibrary.iconSource(row.appIcon) : ""
++                source: row.isApp ? (root.appLibrary ? root.appLibrary.iconSource(row.appIcon) : root.fallbackIconSource(row.appIcon)) : ""
+                 asynchronous: true
+                 anchors.left: parent.left
+                 anchors.leftMargin: root.rowReservedBorderLeft + Style.space(8) + (Style.space(36) - width) / 2
