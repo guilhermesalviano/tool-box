@@ -13,7 +13,7 @@ REPORT="${TOOL_DIR}/report.sh"
 LOGS_DIR="${ROOT_DIR}/logs"
 PID_FILE="${LOGS_DIR}/monitor.pid"
 SERVICE_NAME="com.guilhermesalviano.toolbox-monitor"
-PLIST_SRC="${TOOL_DIR}/launchd/${SERVICE_NAME}.plist"
+PLIST_TEMPLATE="${TOOL_DIR}/launchd/${SERVICE_NAME}.plist.template"
 PLIST_DEST="${HOME}/Library/LaunchAgents/${SERVICE_NAME}.plist"
 
 mkdir -p "${LOGS_DIR}"
@@ -172,7 +172,16 @@ cmd_install_service() {
     cmd_stop
   fi
 
-  cp "${PLIST_SRC}" "${PLIST_DEST}"
+  # O template não tem caminho absoluto nenhum embutido: cada máquina/usuário
+  # pode ter clonado o tool-box em um lugar diferente, então os caminhos reais
+  # são preenchidos aqui a partir de ROOT_DIR/HOME antes de instalar o plist.
+  sed \
+    -e "s|__PYTHON__|${PYTHON}|g" \
+    -e "s|__COLLECTOR__|${COLLECTOR}|g" \
+    -e "s|__ROOT_DIR__|${ROOT_DIR}|g" \
+    -e "s|__STDOUT__|${LOGS_DIR}/monitor-service.log|g" \
+    -e "s|__STDERR__|${LOGS_DIR}/monitor-service-err.log|g" \
+    "${PLIST_TEMPLATE}" > "${PLIST_DEST}"
 
   if launchctl list | grep -q "${SERVICE_NAME}" 2>/dev/null; then
     launchctl unload "${PLIST_DEST}" 2>/dev/null || true
@@ -198,6 +207,10 @@ cmd_uninstall_service() {
 }
 
 case "${1:-}" in
+  setup)
+    ensure_venv
+    echo "Virtualenv pronto em ${ROOT_DIR}/.venv."
+    ;;
   start)
     cmd_start
     ;;
@@ -225,7 +238,7 @@ case "${1:-}" in
     cmd_uninstall_service
     ;;
   *)
-    echo "Uso: $0 {start|stop|restart|status|report [data]|logs [-f]|install-service|uninstall-service}"
+    echo "Uso: $0 {setup|start|stop|restart|status|report [data]|logs [-f]|install-service|uninstall-service}"
     exit 1
     ;;
 esac
