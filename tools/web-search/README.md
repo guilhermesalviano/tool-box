@@ -8,6 +8,10 @@ When you type text that matches no installed app or Omarchy setting, the menu
 also offers **Search Web: _your text_** automatically. Press Enter to use that
 exact text as the web query.
 
+If unmatched text still shows “No matches” after installing or updating the
+menu integration, run `omarchy restart shell` once. `omarchy menu refresh`
+only reloads menu definitions; a plugin rescan can retain older menu code.
+
 You can also run:
 
 ```bash

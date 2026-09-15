@@ -42,6 +42,7 @@ mkdir -p "$HOME/.local/bin"
 launcher="$HOME/.local/bin/toolbox-ask-agent"
 [[ ! -e $launcher && ! -L $launcher ]] || cp -a "$launcher" "$backup/launcher"
 ln -sfn "$tool_dir/run.sh" "$launcher"
-omarchy-shell shell rescanPlugins >/dev/null
-omarchy menu refresh >/dev/null
+# A plugin rescan can keep the previous QML component cached. Restart the
+# shell so the menu actually runs the code just installed.
+omarchy restart shell
 printf 'Ask AI installed in %s\nBackup: %s\n' "$target" "$backup"
