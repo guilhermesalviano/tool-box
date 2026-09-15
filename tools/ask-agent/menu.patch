@@ -86,7 +86,25 @@
      ? Math.min(contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight), panel.height - Style.gapsOut * 2)
      : Math.min(contentMargin * 2 + headerHeight + contentSpacing + visibleRowsHeight, panel.height - Style.gapsOut * 2)
 
-@@ -559,6 +610,7 @@
+@@ -277,6 +328,17 @@
+       script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
+       icon: "\udb81\udc0b",
+       actionFor: function(value) { return "omarchy-powerprofiles-set autodetect " + Util.shellQuote(value) }
++    },
++    // Bash-enumerated fallback for the Apps submenu. Cloned menu+bar-widget
++    // plugins never receive a working shell.appLibrary (root.appLibrary stays
++    // null: https://github.com/omacom/omarchy/issues/11762 and duplicates),
++    // so the built-in "apps" provider silently merges zero rows. This walks
++    // desktop files directly instead of depending on that broken proxy.
++    "programs": {
++      script: "declare -A seen; for dir in \"$HOME/.local/share/applications\" /usr/local/share/applications /usr/share/applications; do [[ -d $dir ]] || continue; for f in \"$dir\"/*.desktop; do [[ -f $f ]] || continue; id=$(basename \"$f\" .desktop); [[ -n ${seen[$id]:-} ]] && continue; seen[$id]=1; IFS=$'\\t' read -r name nodisplay hidden type < <(awk -F= -v OFS='\\t' '/^\\[Desktop Entry\\]/{s=1;next} /^\\[/{s=0} s&&/^Name=/&&!name{name=substr($0,6)} s&&/^NoDisplay=/{nodisplay=substr($0,11)} s&&/^Hidden=/{hidden=substr($0,8)} s&&/^Type=/{type=substr($0,6)} END{print name, nodisplay, hidden, type}' \"$f\"); [[ -z $type || $type == Application ]] || continue; [[ $nodisplay == true || $hidden == true ]] && continue; [[ -z $name ]] && name=$id; printf '%s\\t%s\\t%s\\n' \"$name\" \"$id\" \"\"; done; done",
++      icon: "\udb80\udc3b",
++      volatile: true,
++      actionFor: function(value) { return "uwsm-app -- gtk-launch " + Util.shellQuote(value) }
+     }
+   })
+
+@@ -559,6 +621,7 @@
    }
 
    function rebuildDisplay() {
@@ -94,7 +112,7 @@
      if (root.dmenuActive) {
        root.rebuildDmenuDisplay()
        return
-@@ -627,6 +679,15 @@
+@@ -627,6 +690,15 @@
        }
      }
 
@@ -110,7 +128,7 @@
      for (var k = 0; k < rows.length; k++) displayModel.append(rows[k])
      layoutSerial += 1
 
-@@ -635,6 +696,7 @@
+@@ -635,6 +707,7 @@
      else if (selectedIndex < 0) selectedIndex = 0
 
      Qt.callLater(function() {
@@ -118,7 +136,7 @@
        if (displayModel.count > 0) root.revealCursor()
      })
    }
-@@ -730,6 +792,16 @@
+@@ -730,6 +803,16 @@
      if (index < 0 || index >= displayModel.count) return
 
      var row = displayModel.get(index)
@@ -135,7 +153,7 @@
      if (row.kind === "menu" || row.kind === "link") {
        root.setActiveMenu(row.target || row.itemId, true, fromPointer)
      } else if (row.kind === "app") {
-@@ -793,6 +865,7 @@
+@@ -793,6 +876,7 @@
    }
 
    function openExistingMenu(initialMenu) {
@@ -143,7 +161,7 @@
      requestSerial += 1
      mode = "menu"
      requestActive = false
-@@ -817,6 +890,7 @@
+@@ -817,6 +901,7 @@
    }
 
    function openDmenu(payload) {
@@ -151,7 +169,7 @@
      requestSerial += 1
      mode = payload.mode === "input" ? "input" : "select"
      dmenuPrompt = String(payload.prompt || (mode === "input" ? "Input" : "Select"))
-@@ -852,6 +926,7 @@
+@@ -852,6 +937,7 @@
 
    function openRoute(initialMenu) {
      var id = root.resolveRoute(initialMenu)
@@ -159,7 +177,7 @@
      var entry = root.items[id]
      // If the resolved id is an action (i.e. the user invoked an alias for
      // a leaf, e.g. `omarchy menu summon screenrecord-stop`), run it directly
-@@ -1069,7 +1144,8 @@
+@@ -1069,7 +1155,8 @@
          id: keyCatcher
          anchors.fill: parent
          z: root.deleteConfirmOpen ? 20 : 0
@@ -169,7 +187,7 @@
 
          Keys.priority: Keys.BeforeItem
          Keys.onPressed: function(event) {
-@@ -1136,7 +1212,23 @@
+@@ -1136,7 +1223,23 @@
          }
        }
 

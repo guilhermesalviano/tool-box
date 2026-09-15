@@ -1,6 +1,13 @@
 {
   "toolbox-ask-agent": {"icon":"󰚩","label":"Ask AI","description":"Read an AI answer here · or type ask <question>","aliases":["ask","ai","ask-agent"],"action":"\"$HOME/.local/bin/toolbox-ask-agent\""},
   "toolbox-web-search": {"icon":"󰖟","label":"Search Web","description":"Search the internet in your default browser","aliases":["web","internet"],"action":"\"$HOME/.local/bin/toolbox-web-search\""},
+  // Cloned menu+bar-widget plugins never receive a working shell.appLibrary
+  // on this Omarchy release, so the stock "apps" provider always merges zero
+  // rows (github.com/omacom/omarchy issues 11762, 10928, 11171, 11788, and
+  // duplicates). Re-point the built-in "apps" entry at menu.patch's bash
+  // "programs" provider instead, which enumerates .desktop files directly.
+  // Icon/label/aliases mirror the stock default/omarchy/omarchy-menu.jsonc entry.
+  "apps": {"icon":"󰀻","label":"Apps","aliases":["app","applications"],"provider":"programs"},
   // Extend the Quickshell Omarchy menu with JSONC.
   //
   // IDs are object keys. The parent is inferred from the dotted id, so
