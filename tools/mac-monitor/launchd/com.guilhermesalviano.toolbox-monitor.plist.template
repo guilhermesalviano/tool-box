@@ -6,11 +6,11 @@
     <string>com.guilhermesalviano.toolbox-monitor</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/guibs/ServerApps/tool-box/.venv/bin/python3</string>
-        <string>/Users/guibs/ServerApps/tool-box/tools/mac-monitor/collector.py</string>
+        <string>__PYTHON__</string>
+        <string>__COLLECTOR__</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/guibs/ServerApps/tool-box</string>
+    <string>__ROOT_DIR__</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -18,8 +18,8 @@
     <key>ThrottleInterval</key>
     <integer>5</integer>
     <key>StandardOutPath</key>
-    <string>/Users/guibs/ServerApps/tool-box/logs/monitor-service.log</string>
+    <string>__STDOUT__</string>
     <key>StandardErrorPath</key>
-    <string>/Users/guibs/ServerApps/tool-box/logs/monitor-service-err.log</string>
+    <string>__STDERR__</string>
 </dict>
 </plist>

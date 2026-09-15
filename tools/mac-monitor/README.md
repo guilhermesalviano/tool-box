@@ -12,7 +12,9 @@ tools/mac-monitor/
 ├── report.sh          # Script AWK para gerar relatório agregado
 ├── manage.sh          # Script de controle (start/stop/status/service)
 ├── launchd/           # Configuração de serviço persistente no macOS
-│   └── com.guilhermesalviano.toolbox-monitor.plist
+│   └── com.guilhermesalviano.toolbox-monitor.plist.template
+│       # (os caminhos são preenchidos por manage.sh install-service,
+│       #  já que cada máquina pode ter clonado o tool-box em outro lugar)
 └── README.md          # Documentação desta ferramenta
 ```
 

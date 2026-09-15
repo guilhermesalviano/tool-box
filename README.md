@@ -6,10 +6,27 @@ A estrutura foi projetada para suportar múltiplos scripts e ferramentas de form
 
 ---
 
+## 🚀 Instalação em uma máquina nova
+
+```bash
+git clone <este-repositório> tool-box
+cd tool-box
+./install.sh
+```
+
+`install.sh` é interativo: pergunta antes de instalar qualquer coisa (pacotes
+do sistema, aliases no shell, serviços), detecta o que já está presente e
+pula o resto sozinho — por exemplo, as integrações do menu do Omarchy (Ask AI,
+Search Web) só aparecem se o comando `omarchy` existir na máquina. Rodar de
+novo é seguro.
+
+---
+
 ## 📂 Estrutura do Repositório
 
 ```text
 tool-box/
+├── install.sh                  # Instalação interativa para uma máquina nova
 ├── toolbox                     # CLI mestre para listar, criar e executar qualquer ferramenta
 ├── tools/                      # Diretório de ferramentas modulares e isoladas
 │   ├── torrent-dl/             # Ferramenta: Download de torrent via aria2c
@@ -37,7 +54,7 @@ tool-box/
 │   │   ├── report.sh           # Script AWK para agregação de estatísticas do dia
 │   │   ├── manage.sh           # Gerenciador local do mac-monitor
 │   │   ├── launchd/            # Configuração de serviço persistente no macOS
-│   │   │   └── com.guilhermesalviano.toolbox-monitor.plist
+│   │   │   └── com.guilhermesalviano.toolbox-monitor.plist.template
 │   │   └── README.md           # Documentação específica do mac-monitor
 │   │
 │   └── _template/              # Molde para criar novas ferramentas com um comando

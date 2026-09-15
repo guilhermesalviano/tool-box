@@ -1,0 +1,279 @@
+--- Menu.qml
++++ Menu.qml
+@@ -22,6 +22,11 @@
+     var payload = ({})
+     try { payload = JSON.parse(payloadJson || "{}") } catch (e) { payload = ({}) }
+
++    if (payload.mode === "ask") {
++      root.openAsk(payload.question || "")
++      return
++    }
++
+     if (payload.fontFamily) root.fontFamily = payload.fontFamily
+
+     if (payload.mode === "select" || payload.mode === "input") {
+@@ -31,6 +36,52 @@
+     }
+   }
+
++  // Ask AI stays in the same search surface; no detached terminal/window.
++  function openAsk(question) {
++    if (root.dmenuActive) root.finishRequest(null)
++    askPane.stop()
++    root.mode = "ask"
++    root.filterText = ""
++    panel.cardTop = -1
++    panel.maxRowsHeight = -1
++    root.opened = true
++    askPane.open(question)
++  }
++
++  function askQuery() {
++    if (/^ask\s+(?:ai|agent)$/i.test(root.filterText.trim())) return ""
++    var match = root.filterText.match(/^(?:ask|ai)\s+([\s\S]+)$/i)
++    return match ? match[1].trim() : ""
++  }
++
++  function webSearchFallback(query) {
++    return {
++      itemId: "toolbox-web-search",
++      kind: "action",
++      icon: "󰖟",
++      iconFont: "",
++      appIcon: "",
++      appId: "",
++      label: "Search Web: " + query,
++      target: "",
++      detail: "Open in your default browser",
++      path: "",
++      childCount: 0,
++      action: "",
++      provider: "",
++      score: -1,
++      section: ""
++    }
++  }
++
++  function appendWebSearchFallback() {
++    var query = root.filterText.trim()
++    if (root.mode !== "menu" || !query || displayModel.count !== 0) return
++    displayModel.append(root.webSearchFallback(query))
++    root.layoutSerial += 1
++    root.selectedIndex = 0
++  }
++
+   function close() {
+     root.cancel()
+   }
+@@ -80,7 +131,7 @@
+   readonly property var appLibrary: root.shell ? root.shell.appLibrary : null
+   property bool deleteConfirmOpen: false
+   property var deleteTarget: null
+-  onOpenedChanged: if (!opened) { deleteConfirmOpen = false; deleteTarget = null }
++  onOpenedChanged: if (!opened) { deleteConfirmOpen = false; deleteTarget = null; askPane.stop() }
+   // Bound to the central [menu] section in shell.toml via Color.qml.
+   // Each color already includes its alpha companion (composed in the
+   // singleton), so consumers can drop them straight into a Rectangle.
+@@ -108,9 +159,9 @@
+   property int dividerHeight: Style.space(17)
+   property bool searchDivider: false
+   property int layoutSerial: 0
+-  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)
++  property int cardWidth: Math.min(root.mode === "ask" ? Style.space(760) : root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)
+   property int visibleRowsHeight: root.dmenuActive ? dmenuRowListHeight(layoutSerial, displayModel.count, filterText) : rowListHeight(layoutSerial, displayModel.count, filterText, searchDivider)
+-  property int cardHeight: root.dmenuActive
++  property int cardHeight: root.mode === "ask" ? Math.min(Style.space(520), panel.height - Style.gapsOut * 2) : root.dmenuActive
+     ? Math.min(contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight), panel.height - Style.gapsOut * 2)
+     : Math.min(contentMargin * 2 + headerHeight + contentSpacing + visibleRowsHeight, panel.height - Style.gapsOut * 2)
+
+@@ -277,6 +328,26 @@
+       script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
+       icon: "\udb81\udc0b",
+       actionFor: function(value) { return "omarchy-powerprofiles-set autodetect " + Util.shellQuote(value) }
++    },
++    // Bash-enumerated fallback for the Apps submenu. Cloned menu+bar-widget
++    // plugins never receive a working shell.appLibrary (root.appLibrary stays
++    // null: https://github.com/omacom/omarchy/issues/11762 and duplicates),
++    // so the built-in "apps" provider silently merges zero rows. This walks
++    // desktop files directly instead of depending on that broken proxy.
++    "programs": {
++      // A single awk pass per file does its own NoDisplay/Hidden/Type
++      // filtering and emits the final row (or nothing) directly \u2014 bash
++      // `read -d$'\t'` was tried first but silently collapses adjacent tabs
++      // from empty fields (NoDisplay=/Hidden= are usually unset), shifting
++      // every later column left.
++      script: "declare -A seen; for dir in \"$HOME/.local/share/applications\" /usr/local/share/applications /usr/share/applications; do [[ -d $dir ]] || continue; for f in \"$dir\"/*.desktop; do [[ -f $f ]] || continue; id=$(basename \"$f\" .desktop); [[ -n ${seen[$id]:-} ]] && continue; seen[$id]=1; awk -F= -v id=\"$id\" '/^\\[Desktop Entry\\]/{s=1;next} /^\\[/{s=0} s&&/^Name=/&&!name{name=substr($0,6)} s&&/^NoDisplay=/{nodisplay=substr($0,11)} s&&/^Hidden=/{hidden=substr($0,8)} s&&/^Type=/{type=substr($0,6)} s&&/^Icon=/&&!icon{icon=substr($0,6)} END{if(type!=\"\"&&type!=\"Application\")exit; if(nodisplay==\"true\"||hidden==\"true\")exit; if(name==\"\")name=id; printf \"%s\\t%s\\t%s\\n\", name, id, icon}' \"$f\"; done; done",
++      icon: "\udb80\udc3b",
++      // Renders each row as a real app icon (via Quickshell.iconPath, see
++      // fallbackIconSource) instead of the shared glyph above \u2014 value's 3rd
++      // column carries the desktop entry's Icon= name/path.
++      rowKind: "app",
++      volatile: true,
++      actionFor: function(value) { return "uwsm-app -- gtk-launch " + Util.shellQuote(value) }
+     }
+   })
+
+@@ -284,6 +355,23 @@
+     return MenuModel.slugify(value)
+   }
+
++  // Standalone icon lookup for when root.appLibrary is unavailable (see the
++  // "programs" provider above): Quickshell.iconPath is a global singleton
++  // method, not something routed through the plugin's scoped shell, so it
++  // works even though the appLibrary proxy itself doesn't. Trimmed down from
++  // AppLibrary.qml's iconSource — this skips its bash-scanned iconIndex
++  // fallback, so an icon file outside the system theme (freshly installed,
++  // this shell instance's icon cache predates it) may not resolve.
++  function fallbackIconSource(icon) {
++    var value = String(icon || "")
++    if (value.length === 0) return Quickshell.iconPath("application-x-executable", true)
++    if (value.indexOf("file://") === 0 || value.indexOf("image://") === 0) return value
++    if (value.charAt(0) === "/") return Util.fileUrl(value)
++    var themed = Quickshell.iconPath(value, true)
++    if (themed.length > 0) return themed
++    return Quickshell.iconPath("application-x-executable", true)
++  }
++
+   // The apps provider is QML-native: rows come from the shared AppLibrary
+   // (DesktopEntries) instead of a bash enumeration, so they carry image
+   // icons, launch feedback, and uninstall support like the launcher.
+@@ -353,6 +441,10 @@
+     var lines = String(rows || "").split("\n")
+     var providerRows = []
+     var takenIds = ({})
++    // "programs" (the Apps-submenu bash fallback) repurposes column 3 as the
++    // desktop entry's Icon= value and renders as a real app icon instead of
++    // the shared glyph other providers (fonts, power-profiles) use.
++    var isAppKind = spec.rowKind === "app"
+     for (var i = 0; i < lines.length; i++) {
+       var line = lines[i].trim()
+       if (!line) continue
+@@ -371,8 +463,10 @@
+       providerRows.push({
+         id: rowId,
+         parent: menuId,
+-        kind: "action",
+-        icon: (value === current) ? "✓" : (spec.icon || ""),
++        kind: isAppKind ? "app" : "action",
++        icon: isAppKind ? "" : ((value === current) ? "✓" : (spec.icon || "")),
++        appIcon: isAppKind ? current : "",
++        appId: isAppKind ? value : "",
+         label: label,
+         title: "",
+         target: "",
+@@ -559,6 +653,7 @@
+   }
+
+   function rebuildDisplay() {
++    if (root.mode === "ask") return
+     if (root.dmenuActive) {
+       root.rebuildDmenuDisplay()
+       return
+@@ -627,6 +722,15 @@
+       }
+     }
+
++    var question = root.askQuery()
++    if (question) {
++      var askEntry = root.item("toolbox-ask-agent")
++      if (askEntry) {
++        var askRow = root.displayRow(askEntry, "Enter to get an answer here", -1)
++        askRow.label = "Ask AI: " + question
++        rows.unshift(askRow)
++      }
++    }
+     for (var k = 0; k < rows.length; k++) displayModel.append(rows[k])
+     layoutSerial += 1
+
+@@ -635,6 +739,7 @@
+     else if (selectedIndex < 0) selectedIndex = 0
+
+     Qt.callLater(function() {
++      root.appendWebSearchFallback()
+       if (displayModel.count > 0) root.revealCursor()
+     })
+   }
+@@ -730,6 +835,16 @@
+     if (index < 0 || index >= displayModel.count) return
+
+     var row = displayModel.get(index)
++    if (row.itemId === "toolbox-ask-agent") {
++      root.openAsk(root.askQuery())
++      return
++    }
++    if (row.itemId === "toolbox-web-search") {
++      root.opened = false
++      root.filterText = ""
++      Util.execArgv([Quickshell.env("HOME") + "/.local/bin/toolbox-web-search", row.label.substring("Search Web: ".length)])
++      return
++    }
+     if (row.kind === "menu" || row.kind === "link") {
+       root.setActiveMenu(row.target || row.itemId, true, fromPointer)
+     } else if (row.kind === "app") {
+@@ -793,6 +908,7 @@
+   }
+
+   function openExistingMenu(initialMenu) {
++    askPane.stop()
+     requestSerial += 1
+     mode = "menu"
+     requestActive = false
+@@ -817,6 +933,7 @@
+   }
+
+   function openDmenu(payload) {
++    askPane.stop()
+     requestSerial += 1
+     mode = payload.mode === "input" ? "input" : "select"
+     dmenuPrompt = String(payload.prompt || (mode === "input" ? "Input" : "Select"))
+@@ -852,6 +969,7 @@
+
+   function openRoute(initialMenu) {
+     var id = root.resolveRoute(initialMenu)
++    if (id === "toolbox-ask-agent") { root.openAsk(""); return "ok" }
+     var entry = root.items[id]
+     // If the resolved id is an action (i.e. the user invoked an alias for
+     // a leaf, e.g. `omarchy menu summon screenrecord-stop`), run it directly
+@@ -1069,7 +1187,8 @@
+         id: keyCatcher
+         anchors.fill: parent
+         z: root.deleteConfirmOpen ? 20 : 0
+-        focus: true
++        focus: root.mode !== "ask"
++        visible: root.mode !== "ask"
+
+         Keys.priority: Keys.BeforeItem
+         Keys.onPressed: function(event) {
+@@ -1136,7 +1255,23 @@
+         }
+       }
+
++      AskPane {
++        id: askPane
++        visible: root.mode === "ask"
++        anchors.fill: parent
++        anchors.topMargin: card.contentTopInset
++        anchors.rightMargin: card.contentRightInset
++        anchors.bottomMargin: card.contentBottomInset
++        anchors.leftMargin: card.contentLeftInset
++        onBackRequested: {
++          panel.cardTop = -1
++          panel.maxRowsHeight = -1
++          root.openExistingMenu("root")
++        }
++      }
++
+       Column {
++        visible: root.mode !== "ask"
+         anchors.fill: parent
+         anchors.topMargin: card.contentTopInset
+         anchors.rightMargin: card.contentRightInset
+@@ -1260,7 +1395,7 @@
+                 // PNG icons upscaled and blurry on HiDPI displays.
+                 sourceSize.width: width * Screen.devicePixelRatio
+                 sourceSize.height: height * Screen.devicePixelRatio
+-                source: row.isApp && root.appLibrary ? root.appLibrary.iconSource(row.appIcon) : ""
++                source: row.isApp ? (root.appLibrary ? root.appLibrary.iconSource(row.appIcon) : root.fallbackIconSource(row.appIcon)) : ""
+                 asynchronous: true
+                 anchors.left: parent.left
+                 anchors.leftMargin: root.rowReservedBorderLeft + Style.space(8) + (Style.space(36) - width) / 2

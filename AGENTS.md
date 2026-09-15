@@ -10,6 +10,9 @@ Guidance for AI coding agents working in this repository.
 
 ## Commands
 
+### Fresh-machine setup (`./install.sh`)
+- `./install.sh` — Interactive, idempotent setup for a new clone: offers to install shell aliases, checks/offers to install each tool's external dependency (`aria2`, `python3`, `jq`, `ripgrep`), bootstraps the mac-monitor virtualenv, and — only when an `omarchy` CLI is detected — wires up the Ask AI / Search Web menu integrations. Confirms before any system-modifying step (package install, LaunchAgent, shell rc edits); safe to re-run.
+
 ### Global CLI (`./toolbox`)
 - `./toolbox list` — List all installed tools and their descriptions.
 - `./toolbox new <tool-name>` — Scaffold a new tool from `tools/_template/`.
@@ -37,6 +40,7 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox swain-macros [--background]` — Open the GTK app that maps macros to the Redragon Swain side buttons (`--background` starts hidden).
 
 ### Mac Monitor (`mac-monitor`)
+- `./toolbox mac-monitor setup` — Create `.venv/` and install Glances into it, without starting the collector.
 - `./toolbox mac-monitor report [YYYY-MM-DD]` — Generate the aggregated CPU and Memory report via AWK (defaults to today).
 - `./toolbox mac-monitor status` — Check if the monitor daemon and LaunchAgent are active, sample count, and log file size.
 - `./toolbox mac-monitor logs [-f]` — View the latest CSV log lines (`-f` to follow in real-time).
@@ -50,6 +54,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Repository layout
 
+- `install.sh` — Interactive fresh-machine setup (see above). Not dispatched through `toolbox`; run directly.
 - `toolbox` — Master executable CLI dispatcher. Inspects `tools/<name>/` and routes to `manage.sh` or `run.sh`.
 - `tools/` — Modular tools directory:
   - `tools/torrent-dl/` — Torrent downloader (magnet link, `.torrent` URL, or local `.torrent` file) via `aria2c`:
@@ -73,7 +78,7 @@ Guidance for AI coding agents working in this repository.
     - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
     - `report.sh` — AWK script calculating daily mean CPU, max CPU, mean Memory, max Memory, and sample count.
     - `manage.sh` — Tool-specific controller (`start`, `stop`, `status`, `report`, `logs`, `install-service`, `uninstall-service`).
-    - `launchd/com.guilhermesalviano.toolbox-monitor.plist` — LaunchAgent definition for macOS boot/login persistence.
+    - `launchd/com.guilhermesalviano.toolbox-monitor.plist.template` — LaunchAgent definition for macOS boot/login persistence. Has no absolute paths baked in; `manage.sh install-service` renders it with the actual `ROOT_DIR`/`HOME` via `sed` before installing, since a clone can live anywhere.
     - `README.md` — Tool documentation (first `# Title` line is shown in `./toolbox list`).
   - `tools/_template/` — Starter boilerplate for new tools (`run.sh` and `README.md`).
 - `logs/` — Centralized log directory (gitignored):
@@ -120,7 +125,7 @@ Guidance for AI coding agents working in this repository.
 
 4. **macOS LaunchAgents**:
    - Label naming convention: `com.guilhermesalviano.<service-name>`.
-   - Stored in `tools/<name>/launchd/` and loaded into `${HOME}/Library/LaunchAgents/`.
+   - Ship a `.plist.template` in `tools/<name>/launchd/`, never a plist with real paths baked in — a clone can live anywhere. Use `__PLACEHOLDER__` tokens and have the tool's `install-service` command render them via `sed` (see `mac-monitor/manage.sh`) into `${HOME}/Library/LaunchAgents/`.
    - Set `WorkingDirectory` to the `tool-box` project root.
    - Use absolute paths in `ProgramArguments` pointing to `.venv/bin/python3` and the tool script.
 
