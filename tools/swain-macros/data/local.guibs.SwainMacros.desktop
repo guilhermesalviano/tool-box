@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Swain Macros
+Comment=Assign macros to the side buttons of the Redragon Swain mouse
+Exec=@EXEC@
+Icon=local.guibs.SwainMacros
+Terminal=false
+Categories=Utility;Settings;HardwareSettings;
+Keywords=mouse;macro;redragon;buttons;
+StartupNotify=true

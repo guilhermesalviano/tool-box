@@ -32,6 +32,10 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox aliases status` — Show which rc files have the aliases installed.
 - `./toolbox aliases list` — List all available aliases and what they expand to.
 
+### Swain Macros (`swain-macros`)
+- `./toolbox swain-macros install` — One-time setup on Ubuntu/GNOME (runs `install.sh`): apt packages, udev rule for the mouse and `/dev/uinput`, app menu entry. Run as the normal user; it calls `sudo` itself.
+- `./toolbox swain-macros [--background]` — Open the GTK app that maps macros to the Redragon Swain side buttons (`--background` starts hidden).
+
 ### Mac Monitor (`mac-monitor`)
 - `./toolbox mac-monitor report [YYYY-MM-DD]` — Generate the aggregated CPU and Memory report via AWK (defaults to today).
 - `./toolbox mac-monitor status` — Check if the monitor daemon and LaunchAgent are active, sample count, and log file size.
@@ -57,6 +61,13 @@ Guidance for AI coding agents working in this repository.
   - `tools/aliases/` — Shell alias installer for the Tool-Box CLI:
     - `aliases.sh` — Self-locating alias definitions (sourced, not executed; works from bash and zsh).
     - `manage.sh` — Tool-specific controller (`install`, `uninstall`, `status`, `list`).
+    - `README.md` — Tool documentation.
+  - `tools/swain-macros/` — Linux (Ubuntu/GNOME, Wayland and X11) macro app for the Redragon Swain mouse side buttons (Holtek `04d9:fc63`):
+    - `run.sh` — Entry point; launches the app, or `install.sh` with `install`.
+    - `install.sh` — One-time setup (apt deps, udev rule, `uinput` module, desktop launcher).
+    - `swain-macros` — Python launcher for the `swain_macros` package.
+    - `swain_macros/` — `app.py` (GTK4/libadwaita UI), `engine.py` (grabs the mouse via evdev and re-emits events through `uinput`), `macro.py` (macro language parser/player), `config.py` (`~/.config/swain-macros/config.json`, autostart).
+    - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
     - `README.md` — Tool documentation.
   - `tools/mac-monitor/` — Continuous Mac CPU & Memory monitor:
     - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
@@ -105,7 +116,7 @@ Guidance for AI coding agents working in this repository.
    - Be self-contained in its own subdirectory.
    - Provide an executable entrypoint: `manage.sh` (for daemons/services with subcommands) or `run.sh` (for simple runnable scripts).
    - Have a `README.md` whose first line is `# <Tool Name>` so `./toolbox list` can auto-discover it.
-   - Use the shared Python virtual environment at `../../.venv/bin/python3` if Python is required.
+   - Use the shared Python virtual environment at `../../.venv/bin/python3` if Python is required. Exception: `swain-macros` uses the system `python3` because PyGObject (GTK) and evdev come from apt.
 
 4. **macOS LaunchAgents**:
    - Label naming convention: `com.guilhermesalviano.<service-name>`.

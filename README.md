@@ -25,6 +25,13 @@ tool-box/
 │   │   ├── manage.sh           # install/uninstall/status/list
 │   │   └── README.md           # Documentação específica dos aliases
 │   │
+│   ├── swain-macros/           # Ferramenta: Macros nos botões laterais do mouse Redragon Swain (Ubuntu)
+│   │   ├── run.sh              # Abre o app (ou `install` para a configuração inicial)
+│   │   ├── install.sh          # Dependências apt, regra udev e atalho no menu
+│   │   ├── swain_macros/       # App GTK, engine evdev/uinput e linguagem de macros
+│   │   ├── data/               # Regra udev, .desktop e ícone
+│   │   └── README.md           # Documentação específica do swain-macros
+│   │
 │   ├── mac-monitor/            # Ferramenta: Monitor de Uso de CPU e Memória (Glances)
 │   │   ├── collector.py        # Coletor contínuo (streaming Glances -> CSV)
 │   │   ├── report.sh           # Script AWK para agregação de estatísticas do dia
@@ -115,6 +122,24 @@ comandos mais usados do Tool-Box.
 ```
 
 Veja `tools/aliases/README.md` para a lista completa de atalhos.
+
+---
+
+## 🖱️ Ferramenta: `swain-macros`
+
+App GNOME (Ubuntu, Wayland e X11) que troca a função dos botões laterais do
+mouse Redragon Swain por macros (teclas, texto, cliques, scroll, comandos).
+Usa o `python3` do sistema, não o `.venv`.
+
+```bash
+# Configuração inicial (uma vez; pede sudo quando precisa):
+./toolbox swain-macros install
+
+# Abrir o app (ou pelo menu de aplicativos):
+./toolbox swain-macros
+```
+
+Veja `tools/swain-macros/README.md` para a linguagem de macros e como desinstalar.
 
 ---
 

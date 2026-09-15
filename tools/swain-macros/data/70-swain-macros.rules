@@ -1,0 +1,5 @@
+# Swain Macros: give the logged-in user access to the Redragon Swain mouse (Holtek 04d9:fc63)
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="fc63", TAG+="uaccess"
+
+# ...and to /dev/uinput, used to create the virtual pointer/keyboard that replay events and macros
+KERNEL=="uinput", SUBSYSTEM=="misc", OPTIONS+="static_node=uinput", TAG+="uaccess"
