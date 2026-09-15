@@ -1,5 +1,6 @@
 {
   "toolbox-ask-agent": {"icon":"󰚩","label":"Ask AI","description":"Read an AI answer here · or type ask <question>","aliases":["ask","ai","ask-agent"],"action":"\"$HOME/.local/bin/toolbox-ask-agent\""},
+  "toolbox-web-search": {"icon":"󰖟","label":"Search Web","description":"Search the internet in your default browser","aliases":["web","internet"],"action":"\"$HOME/.local/bin/toolbox-web-search\""},
   // Extend the Quickshell Omarchy menu with JSONC.
   //
   // IDs are object keys. The parent is inferred from the dotted id, so
