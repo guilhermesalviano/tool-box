@@ -97,6 +97,7 @@ Guidance for AI coding agents working in this repository.
     - `README.md` — Tool documentation (first `# Title` line is shown in `./toolbox list`).
   - `tools/_template/` — Starter boilerplate for new tools (`run.sh` and `README.md`).
 - `apps/` — GUI applications; dispatched by `./toolbox` just like `tools/`:
+  - `apps/README.md` — User documentation (Portuguese) for the apps in `apps/`; the root `README.md` only links to it.
   - `apps/swain-macros/` — Linux (Ubuntu/GNOME, Wayland and X11) macro app for the Redragon Swain mouse side buttons (Holtek `04d9:fc63`):
     - `run.sh` — Entry point; launches the app, or `install.sh` with `install`.
     - `install.sh` — One-time setup (apt deps, udev rule, `uinput` module, desktop launcher).
@@ -105,6 +106,7 @@ Guidance for AI coding agents working in this repository.
     - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
     - `README.md` — Tool documentation.
 - `omarchy/` — Omarchy shell plugins; each folder is a plugin (`manifest.json` + QML) and is also dispatched by `./toolbox` via its `run.sh`. Installers copy only the listed plugin files (no symlinks; `omarchy plugin validate` must pass) to `~/.config/omarchy/plugins/<id>/`:
+  - `omarchy/README.md` — User documentation (Portuguese) for the plugins in `omarchy/`; the root `README.md` only links to it.
   - `omarchy/ask-agent/` — Plugin `toolbox.ask-agent` (kinds `menu`, `bar-widget`; `clonedFrom: omarchy.menu`, so calls to `omarchy.menu` route to it). Inline AI answers inside the Super + Space search panel:
     - `manifest.json`, `Menu.qml`, `MenuModel.js`, `BarWidget.qml` — Full copy of Omarchy's stock menu plugin plus the toolbox changes (Ask AI mode, `programs` Apps provider, Search Web fallback row, bundled `menu.jsonc` source). Does not receive upstream menu fixes automatically; diff against `/usr/share/omarchy/shell/plugins/menu/` after Omarchy updates.
     - `AskPane.qml` — The answer pane; runs the plugin's own `answer.sh`.
