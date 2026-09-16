@@ -119,6 +119,16 @@ tool-box/
 │   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │   │   └── README.md           # Documentação específica do calendar
 │   │
+│   ├── orca/                   # Plugin toolbox.orca: workspaces e agentes do Orca na barra
+│   │   ├── manifest.json       # Manifesto do plugin (bar-widget)
+│   │   ├── Panel.qml           # Botão da barra + lista de workspaces e agentes
+│   │   ├── Model.js            # Lógica pura dos workspaces/agentes (testada com node)
+│   │   ├── snapshot.sh         # Lê o CLI do Orca (worktree ps / terminal list) em JSON
+│   │   ├── focus.sh            # Traz o Orca para a frente no terminal escolhido
+│   │   ├── run.sh              # toolbox orca status|json|focus
+│   │   ├── install.sh          # Valida, copia e adiciona o plugin à barra
+│   │   └── README.md           # Documentação específica do orca
+│   │
 │   └── web-search/             # Plugin toolbox.web-search: caixa de busca na internet
 │       ├── manifest.json       # Manifesto do plugin (overlay)
 │       ├── WebSearch.qml       # Caixa de busca
@@ -177,7 +187,7 @@ A documentação de `swain-macros` está em [`apps/README.md`](apps/README.md).
 
 ## 🟢 Plugins Omarchy (`omarchy/`)
 
-A documentação de `ask-agent`, `calendar` e `web-search` está em
+A documentação de `ask-agent`, `calendar`, `orca` e `web-search` está em
 [`omarchy/README.md`](omarchy/README.md).
 
 ---

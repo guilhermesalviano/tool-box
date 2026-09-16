@@ -54,6 +54,12 @@ Guidance for AI coding agents working in this repository.
 - `./omarchy/calendar/test.sh` — Python recurrence/parsing tests, node tests for `Events.js`, plugin validation. No network.
 - Output: `~/.local/state/toolbox-calendar/events.json`, window 45 days back to 120 days ahead. Bar settings: `nextEventMinutes` (default 60, `0` hides the next event), `notifyMinutes` (default 30, `0` disables notifications).
 
+### Orca (`orca`) — Omarchy only
+- `./toolbox orca [status]` — Orca workspaces and running agents in the terminal. `json` prints the raw snapshot; `focus [terminal-handle]` brings Orca to the front.
+- `./omarchy/orca/install.sh [--check]` — Validate, copy to `~/.config/omarchy/plugins/toolbox.orca/`, enable, and place it after `guibs.workspaces` on first install (an existing bar entry keeps its place).
+- `./omarchy/orca/test.sh` — Node tests for `Model.js`, closed-Orca snapshot, plugin validation. Does not need Orca running.
+- Bar setting: `refreshSeconds` (default 10, minimum 3; the open panel refreshes every 3 s).
+
 ### Web Search (`web-search`) — Omarchy only
 - `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, opens the `toolbox.web-search` search box.
 - `./omarchy/web-search/install.sh --check` — Validate the plugin and prerequisites (`jq`, `omarchy-launch-browser`) without installing.
@@ -123,6 +129,12 @@ Guidance for AI coding agents working in this repository.
     - `notify.sh` — Sends one event notification via `omarchy notification send` (click opens the link), deduplicated by a stamp directory per occurrence under `~/.local/state/toolbox-calendar/notified/`.
     - `run.sh` — `toolbox calendar` subcommands.
     - `install.sh`, `test.sh`, `README.md`.
+  - `omarchy/orca/` — Plugin `toolbox.orca` (kind `bar-widget`). Orca IDE workspaces and running agents, read-only:
+    - `manifest.json`, `Panel.qml` — Bar button (`󰉋 <workspaces>  󰚩 <agents>`, urgent colour when an agent is `blocked`/`waiting`, hidden while Orca is closed) and dropdown list; row click runs `focus.sh`.
+    - `snapshot.sh` — Calls Orca's CLI shim (`~/.config/orca/linux-orca-cli-shim/orca`, override `TOOLBOX_ORCA_CLI`): `worktree ps --json` + `terminal list --json`, merged with `jq`. Always exits 0; `{"running": false, "error": ...}` when Orca is closed. The shim only works while the Orca process it was written for is alive.
+    - `Model.js` — Pure shaping: drops archived worktrees and `done` agents, matches agent `paneKey` (`tabId:leafId`) to terminal handles, sorts needs-you → working → idle. Tested by `test_model.js`. Orca's JSON fields are undocumented (read from Orca 1.4.204).
+    - `focus.sh` — `orca terminal switch --terminal <handle>` then `hyprctl dispatch focuswindow class:^(orca)$`.
+    - `run.sh`, `install.sh`, `test.sh`, `README.md`.
   - `omarchy/web-search/` — Plugin `toolbox.web-search` (kind `overlay`). Internet search via `omarchy-launch-browser`:
     - `manifest.json`, `WebSearch.qml` — Search-box overlay; summon payload `{"query": "..."}` searches immediately.
     - `run.sh` — Entry point; URL-encodes the query and launches the default browser, or opens the search box without a query.

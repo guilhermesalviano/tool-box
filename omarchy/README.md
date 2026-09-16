@@ -49,6 +49,25 @@ e os cuidados de privacidade.
 
 ---
 
+## 🐋 Ferramenta: `orca` (somente Omarchy)
+
+Mostra na barra os workspaces abertos no Orca e quantos agentes estão rodando
+(`󰉋 3  󰚩 2`). O ícone fica na cor de alerta quando um agente espera aprovação
+ou resposta, e some da barra com o Orca fechado. Clicar abre a lista de
+workspaces com seus agentes; clicar numa linha traz o Orca para a frente
+naquele terminal.
+
+```bash
+./omarchy/orca/install.sh   # instala o plugin toolbox.orca e adiciona à barra
+./toolbox orca              # workspaces e agentes rodando, no terminal
+./toolbox orca focus        # traz o Orca para a frente
+```
+
+Veja [`orca/README.md`](orca/README.md) para as configurações e como os dados
+são lidos do CLI do Orca.
+
+---
+
 ## 🌐 Ferramenta: `web-search` (somente Omarchy)
 
 Busca na internet pelo navegador padrão, a partir do menu do Omarchy

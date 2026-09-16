@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "toolbox.orca",
+  "name": "Orca",
+  "version": "1.0.0",
+  "author": "Tool-Box",
+  "description": "Orca workspaces and the agents running in them, in the bar",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Orca",
+    "description": "How many Orca workspaces are open and agents are running; click for the list, click a row to jump to it",
+    "category": "AI",
+    "allowMultiple": false,
+    "defaultSection": "left",
+    "schema": [
+      {
+        "key": "refreshSeconds",
+        "type": "number",
+        "label": "Check Orca every this many seconds (minimum 3)",
+        "defaultValue": 10
+      }
+    ]
+  }
+}

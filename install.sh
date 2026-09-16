@@ -230,6 +230,12 @@ else
     echo "Pulado. Rode './omarchy/calendar/install.sh' quando quiser."
   fi
 
+  if confirm "Instalar o plugin 'Orca' (toolbox.orca, workspaces e agentes do Orca na barra)?"; then
+    "${ROOT_DIR}/omarchy/orca/install.sh" || echo "Falhou — veja a mensagem acima." >&2
+  else
+    echo "Pulado. Rode './omarchy/orca/install.sh' quando quiser."
+  fi
+
   if confirm "Instalar o plugin 'Ask AI' (toolbox.ask-agent, substitui o menu do Omarchy e reinicia o shell)?"; then
     "${ROOT_DIR}/omarchy/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
