@@ -39,6 +39,20 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox swain-macros install` — One-time setup on Ubuntu/GNOME (runs `install.sh`): apt packages, udev rule for the mouse and `/dev/uinput`, app menu entry. Run as the normal user; it calls `sudo` itself.
 - `./toolbox swain-macros [--background]` — Open the GTK app that maps macros to the Redragon Swain side buttons (`--background` starts hidden).
 
+### Ask AI (`ask-agent`) — Omarchy only
+- `./toolbox ask-agent [question...]` — Open the inline answer panel inside Omarchy's search (Super + Space). Requires `./tools/ask-agent/install.sh` first.
+- `./toolbox ask-agent --headless <question...>` — Print an answer to stdout without opening a window (machine-facing: stdout is only the answer, stderr only errors).
+- `./tools/ask-agent/install.sh --check` — Verify the menu patch still applies to the installed Omarchy version, without installing.
+- `./tools/ask-agent/install.sh` — Clone Omarchy's menu plugin, apply `menu.patch` + `AskPane.qml`, link `~/.local/bin/toolbox-ask-agent`. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
+- `./tools/ask-agent/test.sh` — Local tests; issues no AI requests.
+- Backend is Codex via `mise which codex`, run with a read-only sandbox and ephemeral sessions. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_CODEX_BIN`.
+
+### Web Search (`web-search`) — Omarchy only
+- `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, the menu opens an inline input field.
+- `./tools/web-search/install.sh --check` — Verify prerequisites (`jq`, `rg`, `omarchy-launch-browser`) without installing.
+- `./tools/web-search/install.sh` — Link `~/.local/bin/toolbox-web-search` and report how to add the menu row.
+- `TOOLBOX_SEARCH_URL` — URL template with a literal `%s` placeholder (default Google). Must start with `http://` or `https://`; the query is URL-encoded via `jq -sRr @uri` before substitution.
+
 ### Mac Monitor (`mac-monitor`)
 - `./toolbox mac-monitor setup` — Create `.venv/` and install Glances into it, without starting the collector.
 - `./toolbox mac-monitor report [YYYY-MM-DD]` — Generate the aggregated CPU and Memory report via AWK (defaults to today).
@@ -73,6 +87,19 @@ Guidance for AI coding agents working in this repository.
     - `swain-macros` — Python launcher for the `swain_macros` package.
     - `swain_macros/` — `app.py` (GTK4/libadwaita UI), `engine.py` (grabs the mouse via evdev and re-emits events through `uinput`), `macro.py` (macro language parser/player), `config.py` (`~/.config/swain-macros/config.json`, autostart).
     - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
+    - `README.md` — Tool documentation.
+  - `tools/ask-agent/` — Omarchy-only: inline AI answers inside the Super + Space search panel:
+    - `run.sh` — Entry point; summons the menu panel, or `--headless` to delegate to `answer.sh`.
+    - `answer.sh` — Machine-facing Codex backend; stdout is only the answer, stderr only errors.
+    - `install.sh` — Stages and validates in a tmpdir, then clones Omarchy's menu plugin and applies the patch. Refuses to overwrite a menu clone it does not own (marker file `.toolbox-ask-agent`).
+    - `menu.patch` / `AskPane.qml` — The patch against Omarchy's stock `Menu.qml`, and the answer pane it adds.
+    - `omarchy-menu.jsonc` — Shared menu extension holding both the `toolbox-ask-agent` and `toolbox-web-search` rows; `install.sh` (root) symlinks `~/.config/omarchy/extensions/omarchy-menu.jsonc` to it.
+    - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
+    - `README.md` — Tool documentation.
+  - `tools/web-search/` — Omarchy-only: internet search from the menu, via `omarchy-launch-browser`:
+    - `run.sh` — Entry point; URL-encodes the query and launches the default browser.
+    - `install.sh` — Links the launcher and reports the menu row to add. Needs `jq` and `rg`.
+    - `test.sh` — Local tests. Not wired into `toolbox`; run directly.
     - `README.md` — Tool documentation.
   - `tools/mac-monitor/` — Continuous Mac CPU & Memory monitor:
     - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
