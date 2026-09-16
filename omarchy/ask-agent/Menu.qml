@@ -1297,6 +1297,7 @@ Item {
           panel.maxRowsHeight = -1
           root.openExistingMenu("root")
         }
+        onCloseRequested: root.close()
       }
 
       Column {

@@ -118,10 +118,13 @@ else
     pkg_install jq || true
   fi
 
-  if ! have mise || ! mise which codex >/dev/null 2>&1; then
-    echo "Codex (via mise) não encontrado — necessário só para responder no 'Ask AI'."
-    echo "O menu e o 'Search Web' funcionam sem isso. Instale o Codex e rode este"
-    echo "script de novo para habilitar as respostas, ou pule por enquanto."
+  agent=$(omarchy default agent 2>/dev/null || true)
+  if [[ -z ${agent} ]]; then
+    echo "Nenhum agente padrão no Omarchy — o 'Ask AI' precisa de um para responder."
+    echo "Escolha em Setup → Default → Agent (Codex ou Claude Code respondem dentro do menu)."
+  elif [[ ${agent} != codex && ${agent} != claude ]]; then
+    echo "Agente padrão: ${agent}. O 'Ask AI' vai abrir as perguntas no terminal dele;"
+    echo "com Codex ou Claude Code a resposta aparece dentro do menu."
   fi
 
   if confirm "Instalar o plugin 'Search Web' (toolbox.web-search)?"; then

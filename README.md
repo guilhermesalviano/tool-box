@@ -69,7 +69,7 @@ tool-box/
 │   │   ├── AskPane.qml         # Painel de resposta dentro do menu
 │   │   ├── menu.jsonc          # Linhas do menu que o plugin adiciona
 │   │   ├── run.sh              # Abre o painel de resposta (ou --headless para scripts)
-│   │   ├── answer.sh           # Backend Codex (stdout = só a resposta)
+│   │   ├── answer.sh           # Backend do agente padrão (stdout = só a resposta)
 │   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │   │   └── README.md           # Documentação específica do ask-agent
 │   │
@@ -197,9 +197,10 @@ Veja `apps/swain-macros/README.md` para a linguagem de macros e como desinstalar
 ## 🤖 Ferramenta: `ask-agent` (somente Omarchy)
 
 Responde perguntas dentro do próprio painel de busca do Omarchy: aperte
-**Super + Space**, digite `ask <sua pergunta>` e Enter. Usa o Codex já
-instalado e autenticado (escolhido em **Setup → Default → Agent**), em
-sandbox somente-leitura.
+**Super + Space**, digite `ask <sua pergunta>` e Enter. Usa o agente padrão do
+Omarchy (**Setup → Default → Agent**), já instalado e autenticado. Codex e
+Claude Code respondem dentro do menu, sem poder executar nada; outros agentes
+abrem a pergunta no próprio terminal.
 
 ```bash
 # Configuração inicial (instala o plugin toolbox.ask-agent no lugar do menu):

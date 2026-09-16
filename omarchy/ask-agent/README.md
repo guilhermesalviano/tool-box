@@ -14,14 +14,21 @@ search for **Ask AI**, open it, type your question, and press Enter.
 
 ## Backend
 
-Uses your existing **Codex** installation and authentication, selected through
-Omarchy's **Setup → Default → Agent**. Inline mode currently supports Codex;
-other default agents produce an explanatory error in the panel.
+Answers come from Omarchy's **default agent** (**Setup → Default → Agent**),
+using its existing installation and sign-in. The agent is read again for every
+question, so switching it takes effect immediately; the pane title shows which
+one answers (for example **Ask AI · Claude Code**).
 
-Runs `codex exec` with a read-only sandbox, no approval prompts, and ephemeral
-sessions. The installed binary is resolved with `mise which codex`, avoiding
-Omarchy's update check on each question. Only the final answer is displayed.
-See [OpenAI's non-interactive mode documentation](https://learn.chatgpt.com/docs/non-interactive-mode).
+| Default agent | How it answers | Kept read-only by |
+| --- | --- | --- |
+| Codex | inside the menu: `codex exec`, ephemeral session | Codex's read-only sandbox, no approval prompts |
+| Claude Code | inside the menu: `claude --print`, no saved session | `--tools ""` (no tools at all) and `--strict-mcp-config` (no MCP servers) |
+| Any other agent | **Open in <agent>** button: the question opens in that agent's terminal through `omarchy agent prompt` | the agent's usual Omarchy launch |
+
+Inline answers are limited to agents whose one-shot mode can be locked to
+text-only replies and has been tested here. The executable is resolved with
+`mise which <agent>`, then `PATH`, avoiding Omarchy's update check on each
+question. Only the final answer is displayed.
 
 ```bash
 ./toolbox ask-agent                      # Open the inline question panel
@@ -36,7 +43,7 @@ Environment overrides:
 | --- | --- | --- |
 | `TOOLBOX_AGENT_WORKDIR` | `~/Work` | Existing directory used as question context |
 | `TOOLBOX_AGENT_TIMEOUT` | `180` | Request timeout in seconds |
-| `TOOLBOX_AGENT_CODEX_BIN` | `mise which codex` | Path to an installed Codex executable |
+| `TOOLBOX_AGENT_BIN` | `mise which <agent>` | Path to the default agent's executable (`TOOLBOX_AGENT_CODEX_BIN` still works for Codex) |
 
 Desktop launches inherit the shell service's environment. Temporary prompt,
 response, and diagnostic files are private and removed on completion or cancel.

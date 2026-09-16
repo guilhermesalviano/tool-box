@@ -7,6 +7,7 @@ import qs.Commons
 FocusScope {
   id: pane
   signal backRequested()
+  signal closeRequested()
   property string answer: ""
   property string error: ""
   property string output: ""
@@ -14,6 +15,13 @@ FocusScope {
   property bool cancelled: false
   property int elapsed: 0
   property string pendingQuestion: ""
+  // The default agent, re-read on every open so changing it in Setup takes
+  // effect on the next question. answer.sh exits 3 when that agent has no
+  // inline mode; the question can then be opened in the agent's own terminal.
+  property string agentId: ""
+  property string agentName: ""
+  property string lastQuestion: ""
+  property bool offerAgentTerminal: false
   readonly property bool busy: request.running
 
   // Absolute path of a file shipped next to this QML file in the plugin folder.
@@ -24,6 +32,8 @@ FocusScope {
   function open(question) {
     answer = ""
     error = ""
+    offerAgentTerminal = false
+    if (!agentInfo.running) agentInfo.running = true
     questionInput.text = question || ""
     Qt.callLater(function() { questionInput.forceActiveFocus() })
     if (questionInput.text.trim()) {
@@ -45,6 +55,8 @@ FocusScope {
     if (!question || busy) return
     answer = ""
     error = ""
+    offerAgentTerminal = false
+    lastQuestion = question
     output = ""
     diagnostics = ""
     elapsed = 0
@@ -52,6 +64,13 @@ FocusScope {
     responseScroll.contentItem.contentY = 0
     request.command = ["bash", pane.pluginFile("answer.sh"), question]
     request.running = true
+  }
+
+  function openInAgent() {
+    var question = lastQuestion || questionInput.text.trim()
+    if (!question) return
+    Quickshell.execDetached(["omarchy", "agent", "prompt", question])
+    closeRequested()
   }
 
   Keys.onEscapePressed: function(event) {
@@ -78,6 +97,7 @@ FocusScope {
       onStreamFinished: pane.diagnostics = text
     }
     onExited: function(code) {
+      pane.offerAgentTerminal = code === 3 && !pane.cancelled
       if (pane.cancelled) pane.error = "Request cancelled."
       else if (code !== 0) pane.error = pane.diagnostics.trim() || "Could not start the AI request. Please retry."
       else if (!pane.output.trim()) pane.error = "No answer received. Please retry."
@@ -86,6 +106,24 @@ FocusScope {
         questionInput.text = pane.pendingQuestion
         pane.pendingQuestion = ""
         Qt.callLater(function() { pane.submit() })
+      }
+    }
+  }
+
+  Process {
+    id: agentInfo
+    command: ["bash", pane.pluginFile("answer.sh"), "--agent-info"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        try {
+          var info = JSON.parse(text)
+          pane.agentId = info.id || ""
+          pane.agentName = info.name || ""
+        } catch (e) {
+          pane.agentId = ""
+          pane.agentName = ""
+        }
       }
     }
   }
@@ -120,7 +158,7 @@ FocusScope {
       onClicked: { pane.stop(); pane.backRequested() }
     }
     Text {
-      text: "Ask AI"
+      text: pane.agentName ? "Ask AI · " + pane.agentName : "Ask AI"
       color: Color.menu.text
       font.family: Style.font.menuFamily
       font.pixelSize: Style.font.heading
@@ -196,8 +234,14 @@ FocusScope {
     spacing: Style.spacing.md
     ActionButton {
       text: pane.busy ? "Cancel" : pane.error ? "Retry" : "Ask"
+      visible: !pane.offerAgentTerminal
       enabled: pane.busy || questionInput.text.trim().length > 0
       onClicked: { if (pane.busy) pane.stop(); else pane.submit() }
+    }
+    ActionButton {
+      text: "Open in " + (pane.agentName || "agent")
+      visible: pane.offerAgentTerminal
+      onClicked: pane.openInAgent()
     }
     ActionButton {
       text: "Copy answer"

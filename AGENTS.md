@@ -45,7 +45,7 @@ Guidance for AI coding agents working in this repository.
 - `./omarchy/ask-agent/install.sh --check` — Validate the plugin with `omarchy plugin validate`, without installing.
 - `./omarchy/ask-agent/install.sh` — Copy the plugin to `~/.config/omarchy/plugins/toolbox.ask-agent/`, enable it (it replaces `omarchy.menu`), retire the old `<username>.menu` patch install, and restart the shell. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
 - `./omarchy/ask-agent/test.sh` — Local tests; issues no AI requests.
-- Backend is Codex via `mise which codex`, run with a read-only sandbox and ephemeral sessions. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_CODEX_BIN`.
+- Backend is Omarchy's default agent (`omarchy default agent`, re-read per question). Inline answers: Codex (`codex exec --sandbox read-only --ephemeral`) and Claude (`claude --print --tools "" --strict-mcp-config --no-session-persistence`), resolved via `mise which <agent>` then `PATH`. Any other agent makes `answer.sh` exit 3 and the pane offers "Open in <agent>" (`omarchy agent prompt`). `answer.sh --agent-info` prints `{id,name,inline}`. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_BIN` (`TOOLBOX_AGENT_CODEX_BIN` still honored for Codex).
 
 ### Calendar (`calendar`) — Omarchy only
 - `./toolbox calendar add [name]` — Add a calendar by its private iCal address (read hidden from the terminal, checked by downloading it, never passed on argv). Stored in `~/.config/toolbox-calendar/calendars.conf` (mode 600).
@@ -109,7 +109,7 @@ Guidance for AI coding agents working in this repository.
     - `AskPane.qml` — The answer pane; runs the plugin's own `answer.sh`.
     - `menu.jsonc` — Rows the plugin adds (Ask AI, Search Web, the Apps override), merged between Omarchy's defaults and the user extension.
     - `run.sh` — Entry point; summons the menu panel, or `--headless` to delegate to `answer.sh`.
-    - `answer.sh` — Machine-facing Codex backend; stdout is only the answer, stderr only errors.
+    - `answer.sh` — Machine-facing agent backend (Codex, Claude inline; exit 3 for other agents); stdout is only the answer, stderr only errors.
     - `install.sh` — Stages and validates in a tmpdir, installs and enables the plugin, retires the legacy patched `<username>.menu` clone (marker `.toolbox-ask-agent`), its `~/.local/bin` launcher and extension symlink, then restarts the shell.
     - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
     - `README.md` — Tool documentation.
