@@ -7,6 +7,13 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="${DIR}/tools"
+APPS_DIR="${DIR}/apps"
+OMARCHY_DIR="${DIR}/omarchy"
+
+# Diretórios varridos para achar uma ferramenta, em ordem de prioridade.
+# "apps/" guarda aplicativos com interface gráfica; "omarchy/", as
+# integrações que só fazem sentido nessa distro.
+TOOL_DIRS=("${TOOLS_DIR}" "${APPS_DIR}" "${OMARCHY_DIR}")
 
 usage() {
   echo "Uso: ./toolbox <comando|ferramenta> [argumentos...]"
@@ -25,34 +32,62 @@ usage() {
   echo "  ./toolbox mac-monitor report"
   echo "  ./toolbox mac-monitor report 2026-09-12"
   echo "  ./toolbox new disk-cleaner"
+  echo ""
+  echo "As ferramentas ficam em 'tools/', os apps gráficos em 'apps/' e as"
+  echo "integrações específicas do Omarchy em 'omarchy/'."
   exit 0
 }
 
-cmd_list() {
-  echo "=========================================="
-  echo "Ferramentas instaladas no Tool-Box"
-  echo "=========================================="
-  if [[ ! -d "${TOOLS_DIR}" ]]; then
-    echo "Nenhuma ferramenta encontrada em ${TOOLS_DIR}."
+# Lista as ferramentas de um diretório ("tools/" ou "omarchy/").
+list_dir() {
+  local dir="$1"
+  local tool_path tool_name desc
+
+  if [[ ! -d "${dir}" ]]; then
+    echo "  (nenhuma ferramenta em ${dir})"
     return 0
   fi
 
-  for tool_path in "${TOOLS_DIR}"/*; do
+  for tool_path in "${dir}"/*; do
     if [[ -d "${tool_path}" ]]; then
-      local tool_name
       tool_name=$(basename "${tool_path}")
       if [[ "${tool_name}" == _* ]]; then
         continue
       fi
 
-      local desc="Sem descrição"
+      desc="Sem descrição"
       if [[ -f "${tool_path}/README.md" ]]; then
         desc=$(grep -m 1 -E '^# ' "${tool_path}/README.md" | sed 's/^# //' || echo "Sem descrição")
       fi
       printf "  %-20s - %s\n" "${tool_name}" "${desc}"
     fi
   done
+}
+
+cmd_list() {
   echo "=========================================="
+  echo "Ferramentas instaladas no Tool-Box"
+  echo "=========================================="
+  list_dir "${TOOLS_DIR}"
+  echo ""
+  echo "-- Apps (interface gráfica) --"
+  list_dir "${APPS_DIR}"
+  echo ""
+  echo "-- Omarchy (só funcionam nessa distro) --"
+  list_dir "${OMARCHY_DIR}"
+  echo "=========================================="
+}
+
+# Ecoa o caminho da ferramenta "$1", procurando em TOOL_DIRS.
+find_tool() {
+  local name="$1" dir
+  for dir in "${TOOL_DIRS[@]}"; do
+    if [[ -d "${dir}/${name}" ]]; then
+      echo "${dir}/${name}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 cmd_new() {
@@ -93,8 +128,7 @@ case "${ACTION}" in
     usage
     ;;
   *)
-    TOOL_PATH="${TOOLS_DIR}/${ACTION}"
-    if [[ -d "${TOOL_PATH}" ]]; then
+    if TOOL_PATH="$(find_tool "${ACTION}")"; then
       if [[ -x "${TOOL_PATH}/manage.sh" ]]; then
         exec "${TOOL_PATH}/manage.sh" "$@"
       elif [[ -x "${TOOL_PATH}/run.sh" ]]; then

@@ -129,7 +129,7 @@ else
   fi
 
   menu_ext="${HOME}/.config/omarchy/extensions/omarchy-menu.jsonc"
-  shared_jsonc="${ROOT_DIR}/tools/ask-agent/omarchy-menu.jsonc"
+  shared_jsonc="${ROOT_DIR}/omarchy/ask-agent/omarchy-menu.jsonc"
   has_custom_entries=false
   if [[ -f "${menu_ext}" && ! -L "${menu_ext}" ]]; then
     # Considera "customizado" qualquer linha "chave": fora de comentário —
@@ -143,7 +143,7 @@ else
     echo "Extensão do menu já aponta para o arquivo compartilhado do Tool-Box."
   elif [[ "${has_custom_entries}" == true ]]; then
     echo "Você já tem entradas próprias em ${menu_ext} — não vou sobrescrever."
-    echo "Adicione manualmente as linhas de ${shared_jsonc} lá (veja tools/ask-agent/README.md)."
+    echo "Adicione manualmente as linhas de ${shared_jsonc} lá (veja omarchy/ask-agent/README.md)."
   elif confirm "Apontar ${menu_ext} para o arquivo compartilhado do Tool-Box (Ask AI + Search Web)?"; then
     mkdir -p "$(dirname "${menu_ext}")"
     if [[ -f "${menu_ext}" ]]; then
@@ -157,15 +157,15 @@ else
   fi
 
   if confirm "Instalar 'Ask AI' (clona o plugin de menu do Omarchy)?"; then
-    "${ROOT_DIR}/tools/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
+    "${ROOT_DIR}/omarchy/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
-    echo "Pulado. Rode './tools/ask-agent/install.sh' quando quiser."
+    echo "Pulado. Rode './omarchy/ask-agent/install.sh' quando quiser."
   fi
 
   if confirm "Instalar 'Search Web'?"; then
-    "${ROOT_DIR}/tools/web-search/install.sh" || echo "Falhou — veja a mensagem acima." >&2
+    "${ROOT_DIR}/omarchy/web-search/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
-    echo "Pulado. Rode './tools/web-search/install.sh' quando quiser."
+    echo "Pulado. Rode './omarchy/web-search/install.sh' quando quiser."
   fi
 fi
 

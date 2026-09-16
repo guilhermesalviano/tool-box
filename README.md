@@ -42,27 +42,6 @@ tool-box/
 │   │   ├── manage.sh           # install/uninstall/status/list
 │   │   └── README.md           # Documentação específica dos aliases
 │   │
-│   ├── swain-macros/           # Ferramenta: Macros nos botões laterais do mouse Redragon Swain (Ubuntu)
-│   │   ├── run.sh              # Abre o app (ou `install` para a configuração inicial)
-│   │   ├── install.sh          # Dependências apt, regra udev e atalho no menu
-│   │   ├── swain_macros/       # App GTK, engine evdev/uinput e linguagem de macros
-│   │   ├── data/               # Regra udev, .desktop e ícone
-│   │   └── README.md           # Documentação específica do swain-macros
-│   │
-│   ├── ask-agent/              # Ferramenta: Respostas de IA dentro da busca do Omarchy
-│   │   ├── run.sh              # Abre o painel de resposta (ou --headless para scripts)
-│   │   ├── answer.sh           # Backend Codex (stdout = só a resposta)
-│   │   ├── install.sh          # Clona e aplica o patch no menu do Omarchy
-│   │   ├── menu.patch          # Patch sobre o Menu.qml original do Omarchy
-│   │   ├── AskPane.qml         # Painel de resposta adicionado ao menu
-│   │   ├── omarchy-menu.jsonc  # Extensão de menu compartilhada (Ask AI + Search Web)
-│   │   └── README.md           # Documentação específica do ask-agent
-│   │
-│   ├── web-search/             # Ferramenta: Busca na internet a partir do menu do Omarchy
-│   │   ├── run.sh              # Codifica a query e abre o navegador padrão
-│   │   ├── install.sh          # Cria o launcher e indica a linha do menu
-│   │   └── README.md           # Documentação específica do web-search
-│   │
 │   ├── mac-monitor/            # Ferramenta: Monitor de Uso de CPU e Memória (Glances)
 │   │   ├── collector.py        # Coletor contínuo (streaming Glances -> CSV)
 │   │   ├── report.sh           # Script AWK para agregação de estatísticas do dia
@@ -74,6 +53,29 @@ tool-box/
 │   └── _template/              # Molde para criar novas ferramentas com um comando
 │       ├── run.sh
 │       └── README.md
+│
+├── apps/                       # Aplicativos com interface gráfica
+│   └── swain-macros/           # App: Macros nos botões laterais do mouse Redragon Swain (Ubuntu)
+│       ├── run.sh              # Abre o app (ou `install` para a configuração inicial)
+│       ├── install.sh          # Dependências apt, regra udev e atalho no menu
+│       ├── swain_macros/       # App GTK, engine evdev/uinput e linguagem de macros
+│       ├── data/               # Regra udev, .desktop e ícone
+│       └── README.md           # Documentação específica do swain-macros
+│
+├── omarchy/                    # Ferramentas que só funcionam no Omarchy
+│   ├── ask-agent/              # Ferramenta: Respostas de IA dentro da busca do Omarchy
+│   │   ├── run.sh              # Abre o painel de resposta (ou --headless para scripts)
+│   │   ├── answer.sh           # Backend Codex (stdout = só a resposta)
+│   │   ├── install.sh          # Clona e aplica o patch no menu do Omarchy
+│   │   ├── menu.patch          # Patch sobre o Menu.qml original do Omarchy
+│   │   ├── AskPane.qml         # Painel de resposta adicionado ao menu
+│   │   ├── omarchy-menu.jsonc  # Extensão de menu compartilhada (Ask AI + Search Web)
+│   │   └── README.md           # Documentação específica do ask-agent
+│   │
+│   └── web-search/             # Ferramenta: Busca na internet a partir do menu do Omarchy
+│       ├── run.sh              # Codifica a query e abre o navegador padrão
+│       ├── install.sh          # Cria o launcher e indica a linha do menu
+│       └── README.md           # Documentação específica do web-search
 │
 ├── logs/                       # Diretório central de logs
 │   ├── glances-YYYY-MM-DD.csv  # Arquivos diários gerados pelo mac-monitor
@@ -99,10 +101,15 @@ O executável `./toolbox` permite interagir com qualquer ferramenta instalada:
 ```
 
 ### Executando Ferramentas
-Qualquer ferramenta dentro de `tools/<nome>` pode ser executada diretamente:
+Qualquer ferramenta dentro de `tools/<nome>`, `apps/<nome>` (aplicativos
+gráficos) ou `omarchy/<nome>` (só existem no Omarchy) pode ser executada
+diretamente:
 ```bash
 ./toolbox <nome-da-ferramenta> [ação/argumentos]
 ```
+
+`./toolbox list` mostra as três famílias separadamente; `./toolbox new` sempre
+cria em `tools/`.
 
 ---
 
@@ -156,7 +163,7 @@ Veja `tools/aliases/README.md` para a lista completa de atalhos.
 
 ---
 
-## 🖱️ Ferramenta: `swain-macros`
+## 🖱️ App: `swain-macros`
 
 App GNOME (Ubuntu, Wayland e X11) que troca a função dos botões laterais do
 mouse Redragon Swain por macros (teclas, texto, cliques, scroll, comandos).
@@ -170,7 +177,7 @@ Usa o `python3` do sistema, não o `.venv`.
 ./toolbox swain-macros
 ```
 
-Veja `tools/swain-macros/README.md` para a linguagem de macros e como desinstalar.
+Veja `apps/swain-macros/README.md` para a linguagem de macros e como desinstalar.
 
 ---
 
@@ -183,15 +190,15 @@ sandbox somente-leitura.
 
 ```bash
 # Configuração inicial (clona e aplica o patch no menu do Omarchy):
-./tools/ask-agent/install.sh --check   # só verifica a compatibilidade
-./tools/ask-agent/install.sh
+./omarchy/ask-agent/install.sh --check   # só verifica a compatibilidade
+./omarchy/ask-agent/install.sh
 
 # Uso:
 ./toolbox ask-agent 'Explique memória swap'
 ./toolbox ask-agent --headless '2 + 2?'   # imprime a resposta, sem abrir janela
 ```
 
-Veja `tools/ask-agent/README.md` para as variáveis de ambiente e como voltar
+Veja `omarchy/ask-agent/README.md` para as variáveis de ambiente e como voltar
 ao menu original.
 
 ---
@@ -209,7 +216,7 @@ o texto digitado não casa com nenhum app ou configuração.
 TOOLBOX_SEARCH_URL='https://duckduckgo.com/?q=%s' ./toolbox web-search 'linux audio'
 ```
 
-Veja `tools/web-search/README.md` para os detalhes de codificação da query.
+Veja `omarchy/web-search/README.md` para os detalhes de codificação da query.
 
 ---
 

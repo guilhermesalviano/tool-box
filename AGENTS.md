@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## What this is
 
-`tool-box` is a modular collection of server and macOS automation scripts, background monitors, and system utilities. Each tool lives in an isolated folder under `tools/<name>/` and is dispatched through the unified `./toolbox` CLI.
+`tool-box` is a modular collection of server and macOS automation scripts, background monitors, and system utilities. Each tool lives in an isolated folder under `tools/<name>/` — or under `apps/<name>/` for GUI applications, or `omarchy/<name>/` when it only works on the Omarchy desktop — and is dispatched through the unified `./toolbox` CLI.
 
 ---
 
@@ -35,22 +35,22 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox aliases status` — Show which rc files have the aliases installed.
 - `./toolbox aliases list` — List all available aliases and what they expand to.
 
-### Swain Macros (`swain-macros`)
+### Swain Macros (`swain-macros`) — GUI app
 - `./toolbox swain-macros install` — One-time setup on Ubuntu/GNOME (runs `install.sh`): apt packages, udev rule for the mouse and `/dev/uinput`, app menu entry. Run as the normal user; it calls `sudo` itself.
 - `./toolbox swain-macros [--background]` — Open the GTK app that maps macros to the Redragon Swain side buttons (`--background` starts hidden).
 
 ### Ask AI (`ask-agent`) — Omarchy only
-- `./toolbox ask-agent [question...]` — Open the inline answer panel inside Omarchy's search (Super + Space). Requires `./tools/ask-agent/install.sh` first.
+- `./toolbox ask-agent [question...]` — Open the inline answer panel inside Omarchy's search (Super + Space). Requires `./omarchy/ask-agent/install.sh` first.
 - `./toolbox ask-agent --headless <question...>` — Print an answer to stdout without opening a window (machine-facing: stdout is only the answer, stderr only errors).
-- `./tools/ask-agent/install.sh --check` — Verify the menu patch still applies to the installed Omarchy version, without installing.
-- `./tools/ask-agent/install.sh` — Clone Omarchy's menu plugin, apply `menu.patch` + `AskPane.qml`, link `~/.local/bin/toolbox-ask-agent`. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
-- `./tools/ask-agent/test.sh` — Local tests; issues no AI requests.
+- `./omarchy/ask-agent/install.sh --check` — Verify the menu patch still applies to the installed Omarchy version, without installing.
+- `./omarchy/ask-agent/install.sh` — Clone Omarchy's menu plugin, apply `menu.patch` + `AskPane.qml`, link `~/.local/bin/toolbox-ask-agent`. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
+- `./omarchy/ask-agent/test.sh` — Local tests; issues no AI requests.
 - Backend is Codex via `mise which codex`, run with a read-only sandbox and ephemeral sessions. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_CODEX_BIN`.
 
 ### Web Search (`web-search`) — Omarchy only
 - `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, the menu opens an inline input field.
-- `./tools/web-search/install.sh --check` — Verify prerequisites (`jq`, `rg`, `omarchy-launch-browser`) without installing.
-- `./tools/web-search/install.sh` — Link `~/.local/bin/toolbox-web-search` and report how to add the menu row.
+- `./omarchy/web-search/install.sh --check` — Verify prerequisites (`jq`, `rg`, `omarchy-launch-browser`) without installing.
+- `./omarchy/web-search/install.sh` — Link `~/.local/bin/toolbox-web-search` and report how to add the menu row.
 - `TOOLBOX_SEARCH_URL` — URL template with a literal `%s` placeholder (default Google). Must start with `http://` or `https://`; the query is URL-encoded via `jq -sRr @uri` before substitution.
 
 ### Mac Monitor (`mac-monitor`)
@@ -69,7 +69,7 @@ Guidance for AI coding agents working in this repository.
 ## Repository layout
 
 - `install.sh` — Interactive fresh-machine setup (see above). Not dispatched through `toolbox`; run directly.
-- `toolbox` — Master executable CLI dispatcher. Inspects `tools/<name>/` and routes to `manage.sh` or `run.sh`.
+- `toolbox` — Master executable CLI dispatcher. Looks up `tools/<name>/` first, then `apps/<name>/`, then `omarchy/<name>/`, and routes to `manage.sh` or `run.sh`. `list` prints the three groups separately; `new` always scaffolds into `tools/`.
 - `tools/` — Modular tools directory:
   - `tools/torrent-dl/` — Torrent downloader (magnet link, `.torrent` URL, or local `.torrent` file) via `aria2c`:
     - `run.sh` — Entry point; `-o/--output`, `-s/--seed-minutes` flags.
@@ -81,26 +81,6 @@ Guidance for AI coding agents working in this repository.
     - `aliases.sh` — Self-locating alias definitions (sourced, not executed; works from bash and zsh).
     - `manage.sh` — Tool-specific controller (`install`, `uninstall`, `status`, `list`).
     - `README.md` — Tool documentation.
-  - `tools/swain-macros/` — Linux (Ubuntu/GNOME, Wayland and X11) macro app for the Redragon Swain mouse side buttons (Holtek `04d9:fc63`):
-    - `run.sh` — Entry point; launches the app, or `install.sh` with `install`.
-    - `install.sh` — One-time setup (apt deps, udev rule, `uinput` module, desktop launcher).
-    - `swain-macros` — Python launcher for the `swain_macros` package.
-    - `swain_macros/` — `app.py` (GTK4/libadwaita UI), `engine.py` (grabs the mouse via evdev and re-emits events through `uinput`), `macro.py` (macro language parser/player), `config.py` (`~/.config/swain-macros/config.json`, autostart).
-    - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
-    - `README.md` — Tool documentation.
-  - `tools/ask-agent/` — Omarchy-only: inline AI answers inside the Super + Space search panel:
-    - `run.sh` — Entry point; summons the menu panel, or `--headless` to delegate to `answer.sh`.
-    - `answer.sh` — Machine-facing Codex backend; stdout is only the answer, stderr only errors.
-    - `install.sh` — Stages and validates in a tmpdir, then clones Omarchy's menu plugin and applies the patch. Refuses to overwrite a menu clone it does not own (marker file `.toolbox-ask-agent`).
-    - `menu.patch` / `AskPane.qml` — The patch against Omarchy's stock `Menu.qml`, and the answer pane it adds.
-    - `omarchy-menu.jsonc` — Shared menu extension holding both the `toolbox-ask-agent` and `toolbox-web-search` rows; `install.sh` (root) symlinks `~/.config/omarchy/extensions/omarchy-menu.jsonc` to it.
-    - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
-    - `README.md` — Tool documentation.
-  - `tools/web-search/` — Omarchy-only: internet search from the menu, via `omarchy-launch-browser`:
-    - `run.sh` — Entry point; URL-encodes the query and launches the default browser.
-    - `install.sh` — Links the launcher and reports the menu row to add. Needs `jq` and `rg`.
-    - `test.sh` — Local tests. Not wired into `toolbox`; run directly.
-    - `README.md` — Tool documentation.
   - `tools/mac-monitor/` — Continuous Mac CPU & Memory monitor:
     - `collector.py` — Python streaming collector daemon reading metrics from Glances and handling midnight CSV rotation.
     - `report.sh` — AWK script calculating daily mean CPU, max CPU, mean Memory, max Memory, and sample count.
@@ -108,6 +88,28 @@ Guidance for AI coding agents working in this repository.
     - `launchd/com.guilhermesalviano.toolbox-monitor.plist.template` — LaunchAgent definition for macOS boot/login persistence. Has no absolute paths baked in; `manage.sh install-service` renders it with the actual `ROOT_DIR`/`HOME` via `sed` before installing, since a clone can live anywhere.
     - `README.md` — Tool documentation (first `# Title` line is shown in `./toolbox list`).
   - `tools/_template/` — Starter boilerplate for new tools (`run.sh` and `README.md`).
+- `apps/` — GUI applications; dispatched by `./toolbox` just like `tools/`:
+  - `apps/swain-macros/` — Linux (Ubuntu/GNOME, Wayland and X11) macro app for the Redragon Swain mouse side buttons (Holtek `04d9:fc63`):
+    - `run.sh` — Entry point; launches the app, or `install.sh` with `install`.
+    - `install.sh` — One-time setup (apt deps, udev rule, `uinput` module, desktop launcher).
+    - `swain-macros` — Python launcher for the `swain_macros` package.
+    - `swain_macros/` — `app.py` (GTK4/libadwaita UI), `engine.py` (grabs the mouse via evdev and re-emits events through `uinput`), `macro.py` (macro language parser/player), `config.py` (`~/.config/swain-macros/config.json`, autostart).
+    - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
+    - `README.md` — Tool documentation.
+- `omarchy/` — Tools that only work on the Omarchy desktop; dispatched by `./toolbox` just like `tools/`:
+  - `omarchy/ask-agent/` — Omarchy-only: inline AI answers inside the Super + Space search panel:
+    - `run.sh` — Entry point; summons the menu panel, or `--headless` to delegate to `answer.sh`.
+    - `answer.sh` — Machine-facing Codex backend; stdout is only the answer, stderr only errors.
+    - `install.sh` — Stages and validates in a tmpdir, then clones Omarchy's menu plugin and applies the patch. Refuses to overwrite a menu clone it does not own (marker file `.toolbox-ask-agent`).
+    - `menu.patch` / `AskPane.qml` — The patch against Omarchy's stock `Menu.qml`, and the answer pane it adds.
+    - `omarchy-menu.jsonc` — Shared menu extension holding both the `toolbox-ask-agent` and `toolbox-web-search` rows; `install.sh` (root) symlinks `~/.config/omarchy/extensions/omarchy-menu.jsonc` to it.
+    - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
+    - `README.md` — Tool documentation.
+  - `omarchy/web-search/` — Omarchy-only: internet search from the menu, via `omarchy-launch-browser`:
+    - `run.sh` — Entry point; URL-encodes the query and launches the default browser.
+    - `install.sh` — Links the launcher and reports the menu row to add. Needs `jq` and `rg`.
+    - `test.sh` — Local tests. Not wired into `toolbox`; run directly.
+    - `README.md` — Tool documentation.
 - `logs/` — Centralized log directory (gitignored):
   - `glances-YYYY-MM-DD.csv` — Daily CSV metric files.
   - `monitor.pid` — Process ID file of the active collector.
@@ -144,8 +146,8 @@ Guidance for AI coding agents working in this repository.
    - Flush every sample immediately (`f.flush()`) so real-time reports always reflect current data.
 
 3. **Tool Structure**:
-   Every tool inside `tools/<name>/` must:
-   - Be self-contained in its own subdirectory.
+   Every tool inside `tools/<name>/` (or `apps/<name>/`, `omarchy/<name>/`) must:
+   - Be self-contained in its own subdirectory. Put it in `apps/` if it is a GUI application, in `omarchy/` if it is useless outside Omarchy; everything else goes in `tools/`.
    - Provide an executable entrypoint: `manage.sh` (for daemons/services with subcommands) or `run.sh` (for simple runnable scripts).
    - Have a `README.md` whose first line is `# <Tool Name>` so `./toolbox list` can auto-discover it.
    - Use the shared Python virtual environment at `../../.venv/bin/python3` if Python is required. Exception: `swain-macros` uses the system `python3` because PyGObject (GTK) and evdev come from apt.

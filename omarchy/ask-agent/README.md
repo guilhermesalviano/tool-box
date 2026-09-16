@@ -54,9 +54,9 @@ On this machine it is already linked to that file. Preserve other custom
 entries when adding the row on another machine.
 
 ```bash
-./tools/ask-agent/install.sh --check # Check compatibility without installing
-./tools/ask-agent/install.sh         # Clone, patch, and enable the menu
-./tools/ask-agent/test.sh            # Local tests; no AI requests
+./omarchy/ask-agent/install.sh --check # Check compatibility without installing
+./omarchy/ask-agent/install.sh         # Clone, patch, and enable the menu
+./omarchy/ask-agent/test.sh            # Local tests; no AI requests
 ```
 
 The installer uses `omarchy plugin clone omarchy.menu` and applies `menu.patch`
