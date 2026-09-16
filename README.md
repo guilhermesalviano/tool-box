@@ -20,6 +20,39 @@ pula o resto sozinho — por exemplo, as integrações do menu do Omarchy (Ask A
 Search Web) só aparecem se o comando `omarchy` existir na máquina. Rodar de
 novo é seguro.
 
+### 🐚 Zsh + Oh My Zsh
+
+O primeiro passo do `install.sh` configura o shell:
+
+1. Instala o `zsh` pelo gerenciador de pacotes (brew/pacman/apt/dnf).
+2. Instala o [Oh My Zsh](https://ohmyz.sh) em modo não interativo — o
+   `~/.zshrc` existente é salvo como `~/.zshrc.pre-oh-my-zsh`.
+3. Clona os plugins em `~/.oh-my-zsh/custom/plugins/`:
+   [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions),
+   [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting) e
+   [fast-syntax-highlighting](https://github.com/zdharma-continuum/fast-syntax-highlighting).
+4. Ativa os plugins no `~/.zshrc` num bloco marcado
+   (`# >>> tool-box zsh plugins >>>`). Os dois plugins de syntax highlighting
+   conflitam se carregados juntos, então só o `fast-syntax-highlighting` é
+   carregado; o `zsh-syntax-highlighting` fica de reserva caso o outro falte.
+5. Oferece tornar o zsh o shell padrão (`chsh -s $(command -v zsh)`).
+
+Esse passo vem antes dos aliases para que eles entrem no `~/.zshrc` novo.
+Para fazer à mão:
+
+```bash
+sudo pacman -S --needed zsh        # ou: brew install zsh / sudo apt-get install -y zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+P="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins"
+git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$P/zsh-autosuggestions"
+git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$P/zsh-syntax-highlighting"
+git clone --depth 1 https://github.com/zdharma-continuum/fast-syntax-highlighting "$P/fast-syntax-highlighting"
+# no fim do ~/.zshrc:
+#   source "$P/zsh-autosuggestions/zsh-autosuggestions.zsh"
+#   source "$P/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
+chsh -s "$(command -v zsh)"
+```
+
 ---
 
 ## 📂 Estrutura do Repositório

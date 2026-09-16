@@ -11,7 +11,7 @@ Guidance for AI coding agents working in this repository.
 ## Commands
 
 ### Fresh-machine setup (`./install.sh`)
-- `./install.sh` — Interactive, idempotent setup for a new clone: offers to install shell aliases, checks/offers to install each tool's external dependency (`aria2`, `python3`, `jq`, `ripgrep`), bootstraps the mac-monitor virtualenv, and — only when an `omarchy` CLI is detected — offers to install the Ask AI / Search Web Omarchy plugins. Confirms before any system-modifying step (package install, LaunchAgent, shell rc edits); safe to re-run.
+- `./install.sh` — Interactive, idempotent setup for a new clone: first offers zsh + Oh My Zsh (unattended; old `~/.zshrc` saved as `~/.zshrc.pre-oh-my-zsh`) with the `zsh-autosuggestions`, `zsh-syntax-highlighting` and `fast-syntax-highlighting` plugins cloned into `$ZSH_CUSTOM/plugins`, enabled via a `# >>> tool-box zsh plugins >>>` block in `~/.zshrc` (only `fast-syntax-highlighting` is sourced — the two highlighters conflict; `zsh-syntax-highlighting` is the fallback), and `chsh` to zsh. This runs before the aliases step so aliases land in the new `~/.zshrc`. Then offers to install shell aliases, checks/offers to install each tool's external dependency (`aria2`, `python3`, `jq`, `ripgrep`), bootstraps the mac-monitor virtualenv, and — only when an `omarchy` CLI is detected — offers to install the Ask AI / Search Web Omarchy plugins. Confirms before any system-modifying step (package install, LaunchAgent, shell rc edits); safe to re-run.
 
 ### Global CLI (`./toolbox`)
 - `./toolbox list` — List all installed tools and their descriptions.

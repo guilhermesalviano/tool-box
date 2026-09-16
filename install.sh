@@ -59,6 +59,93 @@ echo "================================="
 echo "Repositório: ${ROOT_DIR}"
 echo "Sistema:     ${OS}"
 
+# --- Zsh + Oh My Zsh ---------------------------------------------------------
+#
+# Vem antes dos aliases: o instalador do Oh My Zsh troca o ~/.zshrc (o antigo
+# vira ~/.zshrc.pre-oh-my-zsh), então os aliases precisam entrar depois.
+
+section "Zsh + Oh My Zsh (autosuggestions, syntax highlighting)"
+if ! have zsh; then
+  echo "zsh não encontrado."
+  pkg_install zsh || true
+else
+  echo "zsh já está instalado."
+fi
+
+OMZ_DIR="${HOME}/.oh-my-zsh"
+if have zsh; then
+  if [[ -d "${OMZ_DIR}" ]]; then
+    echo "Oh My Zsh já está instalado em ${OMZ_DIR}."
+  elif ! have git || ! have curl; then
+    echo "Oh My Zsh precisa de git e curl — instale-os e rode este script de novo." >&2
+  elif confirm "Instalar o Oh My Zsh? (o ~/.zshrc atual vira ~/.zshrc.pre-oh-my-zsh)"; then
+    RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
+      || echo "Falhou — veja a mensagem acima." >&2
+  else
+    echo "Pulado."
+  fi
+fi
+
+if [[ -d "${OMZ_DIR}" ]]; then
+  ZSH_PLUGINS_DIR="${ZSH_CUSTOM:-${OMZ_DIR}/custom}/plugins"
+  zsh_plugins=(
+    "zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions"
+    "zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting"
+    "fast-syntax-highlighting https://github.com/zdharma-continuum/fast-syntax-highlighting"
+  )
+  missing=()
+  for entry in "${zsh_plugins[@]}"; do
+    [[ -d "${ZSH_PLUGINS_DIR}/${entry%% *}" ]] || missing+=("${entry}")
+  done
+
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    echo "Plugins do zsh já estão instalados em ${ZSH_PLUGINS_DIR}."
+  elif confirm "Instalar os plugins do zsh (${#missing[@]} faltando: $(printf '%s ' "${missing[@]%% *}"))?"; then
+    mkdir -p "${ZSH_PLUGINS_DIR}"
+    for entry in "${missing[@]}"; do
+      git clone --depth 1 "${entry#* }" "${ZSH_PLUGINS_DIR}/${entry%% *}" \
+        || echo "Falhou ao clonar ${entry%% *}." >&2
+    done
+  else
+    echo "Pulado."
+  fi
+
+  # zsh-syntax-highlighting e fast-syntax-highlighting fazem a mesma coisa e
+  # conflitam se carregados juntos: carrega o fast e usa o outro só de reserva.
+  ZSH_START_MARKER="# >>> tool-box zsh plugins >>>"
+  ZSH_END_MARKER="# <<< tool-box zsh plugins <<<"
+  if grep -qF "${ZSH_START_MARKER}" "${HOME}/.zshrc" 2>/dev/null; then
+    echo "Plugins já ativados no ~/.zshrc."
+  elif confirm "Ativar os plugins no ~/.zshrc?"; then
+    cat >> "${HOME}/.zshrc" <<EOF
+
+${ZSH_START_MARKER}
+_tb_zsh_plugins="\${ZSH_CUSTOM:-\${ZSH:-\$HOME/.oh-my-zsh}/custom}/plugins"
+[[ -r "\${_tb_zsh_plugins}/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] \\
+  && source "\${_tb_zsh_plugins}/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [[ -r "\${_tb_zsh_plugins}/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" ]]; then
+  source "\${_tb_zsh_plugins}/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
+elif [[ -r "\${_tb_zsh_plugins}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "\${_tb_zsh_plugins}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
+unset _tb_zsh_plugins
+${ZSH_END_MARKER}
+EOF
+    echo "Ativado em: ${HOME}/.zshrc"
+  else
+    echo "Pulado."
+  fi
+fi
+
+if have zsh && [[ "$(basename "${SHELL:-}")" != zsh ]]; then
+  if confirm "Tornar o zsh o shell padrão? (chsh -s $(command -v zsh))"; then
+    # Atualiza $SHELL para os aliases (logo abaixo) irem para o ~/.zshrc.
+    chsh -s "$(command -v zsh)" && export SHELL="$(command -v zsh)" || echo "Falhou — rode 'chsh -s $(command -v zsh)' manualmente." >&2
+  else
+    echo "Pulado. Rode 'chsh -s $(command -v zsh)' quando quiser."
+  fi
+fi
+
 # --- Aliases -----------------------------------------------------------
 
 section "Atalhos de shell (tb, tb-clean, tb-mon-*, ...)"
