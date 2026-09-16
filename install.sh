@@ -155,6 +155,70 @@ else
   echo "Pulado. Rode '${ROOT_DIR}/toolbox aliases install' quando quiser."
 fi
 
+# --- RTK (Rust Token Killer) -------------------------------------------------
+#
+# Proxy de CLI que comprime a saída de comandos (git, ls, testes...) antes de
+# chegar no contexto dos agentes de código. O `rtk init` instala um hook que
+# reescreve `git status` em `rtk git status` sozinho, então cada agente precisa
+# ser ativado uma vez.
+
+section "RTK (economia de tokens nos agentes de código)"
+if have rtk; then
+  echo "rtk já está instalado ($(rtk --version 2>/dev/null))."
+else
+  echo "rtk não encontrado."
+  # Não existe no pacman/apt: brew, AUR ou o script oficial (~/.local/bin).
+  # Evite 'cargo install rtk' — no crates.io esse nome é outro projeto.
+  if have brew; then
+    rtk_cmd="brew install rtk"
+  elif have yay; then
+    rtk_cmd="yay -S --needed rtk"
+  elif have paru; then
+    rtk_cmd="paru -S --needed rtk"
+  else
+    rtk_cmd="curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh"
+  fi
+  if confirm "Instalar o rtk agora? (${rtk_cmd})"; then
+    eval "${rtk_cmd}" || echo "Falhou — veja a mensagem acima." >&2
+    # O script oficial instala em ~/.local/bin, que pode não estar no PATH ainda.
+    [[ -x "${HOME}/.local/bin/rtk" ]] && export PATH="${HOME}/.local/bin:${PATH}"
+  else
+    echo "Pulado."
+  fi
+fi
+
+if have rtk; then
+  # "nome|detectado?|flags do rtk init"
+  rtk_agents=(
+    "Claude Code|$(have claude || [[ -d ${HOME}/.claude ]] && echo y)|-g"
+    "Codex|$(have codex || [[ -d ${HOME}/.codex ]] && echo y)|-g --codex"
+    "Gemini CLI|$(have gemini || [[ -d ${HOME}/.gemini ]] && echo y)|-g --gemini"
+    "OpenCode|$(have opencode || [[ -d ${HOME}/.config/opencode ]] && echo y)|-g --opencode"
+    "Cursor|$(have cursor-agent || have cursor || [[ -d ${HOME}/.cursor ]] && echo y)|-g --agent cursor"
+    "Windsurf|$(have windsurf || [[ -d ${HOME}/.codeium/windsurf ]] && echo y)|-g --agent windsurf"
+    "GitHub Copilot|$(have copilot && echo y)|-g --copilot"
+  )
+  found=0
+  for entry in "${rtk_agents[@]}"; do
+    IFS='|' read -r name detected flags <<<"${entry}"
+    [[ ${detected} == y ]] || continue
+    found=1
+    # --codex não aceita --auto-patch (não há settings.json para alterar).
+    [[ ${flags} == *--codex* ]] || flags+=" --auto-patch"
+    if confirm "Ativar o rtk no ${name}? (rtk init ${flags})"; then
+      # shellcheck disable=SC2086
+      rtk init ${flags} </dev/tty || echo "Falhou — veja a mensagem acima." >&2
+    else
+      echo "Pulado. Rode 'rtk init ${flags}' quando quiser."
+    fi
+  done
+  if [[ ${found} -eq 0 ]]; then
+    echo "Nenhum agente de código detectado. Depois de instalar um, rode 'rtk init -g' (veja o README)."
+  else
+    echo "Reinicie os agentes abertos para o hook valer. Confira com 'rtk init --show' e 'rtk gain'."
+  fi
+fi
+
 # --- Torrent DL ----------------------------------------------------------
 
 section "Torrent DL (aria2)"

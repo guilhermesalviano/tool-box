@@ -53,6 +53,45 @@ git clone --depth 1 https://github.com/zdharma-continuum/fast-syntax-highlightin
 chsh -s "$(command -v zsh)"
 ```
 
+### 🪙 RTK nos agentes de código
+
+Depois dos aliases, o `install.sh` instala o [RTK](https://github.com/rtk-ai/rtk)
+(Rust Token Killer), um proxy de CLI que comprime a saída de comandos como
+`git status`, `ls` e testes antes de ela entrar no contexto do agente — de 60%
+a 90% menos tokens. O `rtk init` instala um hook que reescreve os comandos
+sozinho (`git status` → `rtk git status`), sem mudar como você usa o agente.
+
+1. Instala o `rtk` com `brew`, pelo AUR (`yay`/`paru`) ou, sem nenhum deles,
+   pelo script oficial (binário em `~/.local/bin`).
+2. Para cada agente encontrado na máquina (comando no `PATH` ou pasta de
+   configuração), pergunta e roda o `rtk init` correspondente.
+
+Para fazer à mão:
+
+```bash
+brew install rtk                   # ou: yay -S rtk
+# ou: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+# (não use 'cargo install rtk': no crates.io esse nome é outro projeto;
+#  use 'cargo install --git https://github.com/rtk-ai/rtk')
+
+rtk init -g                        # Claude Code
+rtk init -g --codex                # Codex
+rtk init -g --gemini               # Gemini CLI
+rtk init -g --opencode             # OpenCode
+rtk init -g --agent cursor         # Cursor
+rtk init -g --agent windsurf       # Windsurf
+rtk init -g --copilot              # GitHub Copilot (VS Code + CLI)
+rtk init --agent cline             # Cline / Roo Code (por projeto, rode na raiz dele)
+
+rtk init --show                    # confere o que está ativo
+rtk gain                           # tokens economizados até agora
+rtk init -g --uninstall            # desfaz (repita com a flag do agente)
+```
+
+Reinicie os agentes que estiverem abertos depois do `rtk init`. As
+ferramentas nativas do Claude Code (`Read`, `Grep`, `Glob`) não passam pelo
+hook — só os comandos de shell são comprimidos.
+
 ---
 
 ## 📂 Estrutura do Repositório
