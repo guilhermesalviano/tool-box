@@ -3,19 +3,19 @@
 @@ -22,6 +22,11 @@
      var payload = ({})
      try { payload = JSON.parse(payloadJson || "{}") } catch (e) { payload = ({}) }
-
+ 
 +    if (payload.mode === "ask") {
 +      root.openAsk(payload.question || "")
 +      return
 +    }
 +
      if (payload.fontFamily) root.fontFamily = payload.fontFamily
-
+ 
      if (payload.mode === "select" || payload.mode === "input") {
 @@ -31,6 +36,52 @@
      }
    }
-
+ 
 +  // Ask AI stays in the same search surface; no detached terminal/window.
 +  function openAsk(question) {
 +    if (root.dmenuActive) root.finishRequest(null)
@@ -85,7 +85,7 @@
 +  property int cardHeight: root.mode === "ask" ? Math.min(Style.space(520), panel.height - Style.gapsOut * 2) : root.dmenuActive
      ? Math.min(contentMargin * 2 + headerHeight + (mode === "input" ? 0 : contentSpacing + visibleRowsHeight), panel.height - Style.gapsOut * 2)
      : Math.min(contentMargin * 2 + headerHeight + contentSpacing + visibleRowsHeight, panel.height - Style.gapsOut * 2)
-
+ 
 @@ -277,6 +328,26 @@
        script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
        icon: "\udb81\udc0b",
@@ -112,11 +112,11 @@
 +      actionFor: function(value) { return "uwsm-app -- gtk-launch " + Util.shellQuote(value) }
      }
    })
-
+ 
 @@ -284,6 +355,23 @@
      return MenuModel.slugify(value)
    }
-
+ 
 +  // Standalone icon lookup for when root.appLibrary is unavailable (see the
 +  // "programs" provider above): Quickshell.iconPath is a global singleton
 +  // method, not something routed through the plugin's scoped shell, so it
@@ -163,7 +163,7 @@
          target: "",
 @@ -559,6 +653,7 @@
    }
-
+ 
    function rebuildDisplay() {
 +    if (root.mode === "ask") return
      if (root.dmenuActive) {
@@ -172,7 +172,7 @@
 @@ -627,6 +722,15 @@
        }
      }
-
+ 
 +    var question = root.askQuery()
 +    if (question) {
 +      var askEntry = root.item("toolbox-ask-agent")
@@ -184,10 +184,10 @@
 +    }
      for (var k = 0; k < rows.length; k++) displayModel.append(rows[k])
      layoutSerial += 1
-
+ 
 @@ -635,6 +739,7 @@
      else if (selectedIndex < 0) selectedIndex = 0
-
+ 
      Qt.callLater(function() {
 +      root.appendWebSearchFallback()
        if (displayModel.count > 0) root.revealCursor()
@@ -195,7 +195,7 @@
    }
 @@ -730,6 +835,16 @@
      if (index < 0 || index >= displayModel.count) return
-
+ 
      var row = displayModel.get(index)
 +    if (row.itemId === "toolbox-ask-agent") {
 +      root.openAsk(root.askQuery())
@@ -210,44 +210,56 @@
      if (row.kind === "menu" || row.kind === "link") {
        root.setActiveMenu(row.target || row.itemId, true, fromPointer)
      } else if (row.kind === "app") {
-@@ -793,6 +908,7 @@
+@@ -738,7 +853,11 @@
+       applySerial = requestSerial
+       opened = false
+       filterText = ""
++      // root.appLibrary is null on this cloned plugin (see the "programs"
++      // provider comment above), so fall back to the row's own action —
++      // the "programs" provider fills it with the gtk-launch command.
+       if (root.appLibrary) root.appLibrary.launch(appId, label)
++      else if (row.action) root.runAction(row.action)
+     } else {
+       root.applySelected(row.itemId, row.action)
+     }
+@@ -793,6 +912,7 @@
    }
-
+ 
    function openExistingMenu(initialMenu) {
 +    askPane.stop()
      requestSerial += 1
      mode = "menu"
      requestActive = false
-@@ -817,6 +933,7 @@
+@@ -817,6 +937,7 @@
    }
-
+ 
    function openDmenu(payload) {
 +    askPane.stop()
      requestSerial += 1
      mode = payload.mode === "input" ? "input" : "select"
      dmenuPrompt = String(payload.prompt || (mode === "input" ? "Input" : "Select"))
-@@ -852,6 +969,7 @@
-
+@@ -852,6 +973,7 @@
+ 
    function openRoute(initialMenu) {
      var id = root.resolveRoute(initialMenu)
 +    if (id === "toolbox-ask-agent") { root.openAsk(""); return "ok" }
      var entry = root.items[id]
      // If the resolved id is an action (i.e. the user invoked an alias for
      // a leaf, e.g. `omarchy menu summon screenrecord-stop`), run it directly
-@@ -1069,7 +1187,8 @@
+@@ -1069,7 +1191,8 @@
          id: keyCatcher
          anchors.fill: parent
          z: root.deleteConfirmOpen ? 20 : 0
 -        focus: true
 +        focus: root.mode !== "ask"
 +        visible: root.mode !== "ask"
-
+ 
          Keys.priority: Keys.BeforeItem
          Keys.onPressed: function(event) {
-@@ -1136,7 +1255,23 @@
+@@ -1136,7 +1259,23 @@
          }
        }
-
+ 
 +      AskPane {
 +        id: askPane
 +        visible: root.mode === "ask"
@@ -268,7 +280,7 @@
          anchors.fill: parent
          anchors.topMargin: card.contentTopInset
          anchors.rightMargin: card.contentRightInset
-@@ -1260,7 +1395,7 @@
+@@ -1260,7 +1399,7 @@
                  // PNG icons upscaled and blurry on HiDPI displays.
                  sourceSize.width: width * Screen.devicePixelRatio
                  sourceSize.height: height * Screen.devicePixelRatio
