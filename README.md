@@ -49,6 +49,20 @@ tool-box/
 │   │   ├── data/               # Regra udev, .desktop e ícone
 │   │   └── README.md           # Documentação específica do swain-macros
 │   │
+│   ├── ask-agent/              # Ferramenta: Respostas de IA dentro da busca do Omarchy
+│   │   ├── run.sh              # Abre o painel de resposta (ou --headless para scripts)
+│   │   ├── answer.sh           # Backend Codex (stdout = só a resposta)
+│   │   ├── install.sh          # Clona e aplica o patch no menu do Omarchy
+│   │   ├── menu.patch          # Patch sobre o Menu.qml original do Omarchy
+│   │   ├── AskPane.qml         # Painel de resposta adicionado ao menu
+│   │   ├── omarchy-menu.jsonc  # Extensão de menu compartilhada (Ask AI + Search Web)
+│   │   └── README.md           # Documentação específica do ask-agent
+│   │
+│   ├── web-search/             # Ferramenta: Busca na internet a partir do menu do Omarchy
+│   │   ├── run.sh              # Codifica a query e abre o navegador padrão
+│   │   ├── install.sh          # Cria o launcher e indica a linha do menu
+│   │   └── README.md           # Documentação específica do web-search
+│   │
 │   ├── mac-monitor/            # Ferramenta: Monitor de Uso de CPU e Memória (Glances)
 │   │   ├── collector.py        # Coletor contínuo (streaming Glances -> CSV)
 │   │   ├── report.sh           # Script AWK para agregação de estatísticas do dia
@@ -160,6 +174,45 @@ Veja `tools/swain-macros/README.md` para a linguagem de macros e como desinstala
 
 ---
 
+## 🤖 Ferramenta: `ask-agent` (somente Omarchy)
+
+Responde perguntas dentro do próprio painel de busca do Omarchy: aperte
+**Super + Space**, digite `ask <sua pergunta>` e Enter. Usa o Codex já
+instalado e autenticado (escolhido em **Setup → Default → Agent**), em
+sandbox somente-leitura.
+
+```bash
+# Configuração inicial (clona e aplica o patch no menu do Omarchy):
+./tools/ask-agent/install.sh --check   # só verifica a compatibilidade
+./tools/ask-agent/install.sh
+
+# Uso:
+./toolbox ask-agent 'Explique memória swap'
+./toolbox ask-agent --headless '2 + 2?'   # imprime a resposta, sem abrir janela
+```
+
+Veja `tools/ask-agent/README.md` para as variáveis de ambiente e como voltar
+ao menu original.
+
+---
+
+## 🌐 Ferramenta: `web-search` (somente Omarchy)
+
+Busca na internet pelo navegador padrão, a partir do menu do Omarchy
+(**Super + Space** → **Search Web**). Também aparece automaticamente quando
+o texto digitado não casa com nenhum app ou configuração.
+
+```bash
+./toolbox web-search 'weather in São Paulo'
+
+# Trocar o buscador (precisa do placeholder literal %s):
+TOOLBOX_SEARCH_URL='https://duckduckgo.com/?q=%s' ./toolbox web-search 'linux audio'
+```
+
+Veja `tools/web-search/README.md` para os detalhes de codificação da query.
+
+---
+
 ## 🖥️ Ferramenta: `mac-monitor`
 
 Monitora uso de CPU e Memória RAM continuamente via **Glances** e gera relatórios diários agregados via **AWK**.
@@ -173,7 +226,8 @@ Monitora uso de CPU e Memória RAM continuamente via **Glances** e gera relatór
 ./toolbox mac-monitor report 2026-09-12
 ```
 
-Você também pode executar diretamente o comando AWK bruto sobre o arquivo diário:
+Você também pode executar diretamente o comando AWK bruto sobre o arquivo
+diário (a partir da raiz do repositório):
 ```bash
 awk -F, '           
 NR==1 {next}
@@ -189,7 +243,7 @@ END {
   print "CPU máxima: " maxcpu "%"
   print "Memória média: " mem/n "%"
   print "Memória máxima: " maxmem "%"
-}' ~/ServerApps/tool-box/logs/glances-$(date +%Y-%m-%d).csv
+}' logs/glances-$(date +%Y-%m-%d).csv
 ```
 
 ### Gerenciamento do Serviço

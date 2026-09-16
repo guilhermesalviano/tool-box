@@ -26,6 +26,13 @@ ensure_venv() {
   fi
 }
 
+# launchctl só existe no macOS. O redirecionamento precisa ficar no próprio
+# launchctl (e não no grep) para que "command not found" não vaze no stderr
+# quando o monitor roda em Linux.
+service_loaded() {
+  launchctl list 2>/dev/null | grep -q "${SERVICE_NAME}"
+}
+
 get_pid() {
   if [[ -f "${PID_FILE}" ]]; then
     local pid
@@ -47,7 +54,7 @@ cmd_start() {
     return 0
   fi
 
-  if launchctl list | grep -q "${SERVICE_NAME}" 2>/dev/null; then
+  if service_loaded; then
     echo "Iniciando via launchd service..."
     launchctl start "${SERVICE_NAME}"
     sleep 1
@@ -72,7 +79,7 @@ cmd_stop() {
   local pid
   pid=$(get_pid)
 
-  if launchctl list | grep -q "${SERVICE_NAME}" 2>/dev/null; then
+  if service_loaded; then
     echo "Parando LaunchAgent ${SERVICE_NAME}..."
     launchctl stop "${SERVICE_NAME}" 2>/dev/null || true
   fi
@@ -118,7 +125,7 @@ cmd_status() {
 
   if [[ -f "${PLIST_DEST}" ]]; then
     local loaded="Não"
-    if launchctl list | grep -q "${SERVICE_NAME}" 2>/dev/null; then
+    if service_loaded; then
       loaded="Sim (ativo)"
     fi
     echo "Serviço:  Instalado em LaunchAgents (${loaded})"
@@ -146,7 +153,7 @@ cmd_report() {
 
 cmd_logs() {
   local today_csv="${LOGS_DIR}/glances-$(date +%Y-%m-%d).csv"
-  if [[ "$1" == "-f" ]]; then
+  if [[ "${1:-}" == "-f" ]]; then
     if [[ ! -f "${today_csv}" ]]; then
       touch "${today_csv}"
     fi
@@ -183,7 +190,7 @@ cmd_install_service() {
     -e "s|__STDERR__|${LOGS_DIR}/monitor-service-err.log|g" \
     "${PLIST_TEMPLATE}" > "${PLIST_DEST}"
 
-  if launchctl list | grep -q "${SERVICE_NAME}" 2>/dev/null; then
+  if service_loaded; then
     launchctl unload "${PLIST_DEST}" 2>/dev/null || true
   fi
 

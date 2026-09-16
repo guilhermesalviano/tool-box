@@ -16,8 +16,6 @@ TARGET_INPUT="${1:-$(date +%Y-%m-%d)}"
 
 if [[ -f "${TARGET_INPUT}" ]]; then
   CSV_FILE="${TARGET_INPUT}"
-elif [[ -f "${LOGS_DIR}/glances-${TARGET_INPUT}.csv" ]]; then
-  CSV_FILE="${LOGS_DIR}/glances-${TARGET_INPUT}.csv"
 else
   CSV_FILE="${LOGS_DIR}/glances-${TARGET_INPUT}.csv"
 fi
