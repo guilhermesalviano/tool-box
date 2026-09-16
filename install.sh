@@ -109,7 +109,7 @@ fi
 
 # --- Omarchy (Ask AI + Search Web) -----------------------------------------
 
-section "Plugins do Omarchy (Ask AI, Search Web)"
+section "Plugins do Omarchy (Ask AI, Search Web, Calendar)"
 if ! have omarchy; then
   echo "Omarchy não detectado nesta máquina — pulando (esses plugins só existem lá)."
 else
@@ -128,6 +128,16 @@ else
     "${ROOT_DIR}/omarchy/web-search/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
     echo "Pulado. Rode './omarchy/web-search/install.sh' quando quiser."
+  fi
+
+  if confirm "Instalar o plugin 'Calendar' (toolbox.calendar, eventos do Google Calendar no relógio)?"; then
+    if "${ROOT_DIR}/omarchy/calendar/install.sh"; then
+      echo "Adicione sua agenda depois com: ./toolbox calendar add"
+    else
+      echo "Falhou — veja a mensagem acima." >&2
+    fi
+  else
+    echo "Pulado. Rode './omarchy/calendar/install.sh' quando quiser."
   fi
 
   if confirm "Instalar o plugin 'Ask AI' (toolbox.ask-agent, substitui o menu do Omarchy e reinicia o shell)?"; then

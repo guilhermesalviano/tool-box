@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "toolbox.calendar",
+  "name": "Calendar",
+  "version": "1.0.0",
+  "author": "Tool-Box",
+  "description": "Omarchy clock with your Google Calendar events, read-only through the calendar's private iCal address",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Calendar",
+    "description": "Clock with your next event and a calendar of your events",
+    "category": "Time",
+    "allowMultiple": false,
+    "schema": [
+      {
+        "key": "nextEventMinutes",
+        "type": "number",
+        "label": "Show next event in the bar this many minutes ahead (0 hides it)",
+        "defaultValue": 60
+      },
+      {
+        "key": "notifyMinutes",
+        "type": "number",
+        "label": "Notify this many minutes before timed events (0 turns notifications off)",
+        "defaultValue": 30
+      }
+    ]
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.clock"
+  }
+}

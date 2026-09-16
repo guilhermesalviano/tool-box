@@ -47,6 +47,13 @@ Guidance for AI coding agents working in this repository.
 - `./omarchy/ask-agent/test.sh` — Local tests; issues no AI requests.
 - Backend is Codex via `mise which codex`, run with a read-only sandbox and ephemeral sessions. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_CODEX_BIN`.
 
+### Calendar (`calendar`) — Omarchy only
+- `./toolbox calendar add [name]` — Add a calendar by its private iCal address (read hidden from the terminal, checked by downloading it, never passed on argv). Stored in `~/.config/toolbox-calendar/calendars.conf` (mode 600).
+- `./toolbox calendar list` / `remove <name|number>` / `sync` / `status` — Manage calendars (addresses masked), sync now, show last sync and errors.
+- `./omarchy/calendar/install.sh [--check]` — Validate, copy to `~/.config/omarchy/plugins/toolbox.calendar/`, and enable (replaces `omarchy.clock`, keeping its bar settings).
+- `./omarchy/calendar/test.sh` — Python recurrence/parsing tests, node tests for `Events.js`, plugin validation. No network.
+- Output: `~/.local/state/toolbox-calendar/events.json`, window 45 days back to 120 days ahead. Bar settings: `nextEventMinutes` (default 60, `0` hides the next event), `notifyMinutes` (default 30, `0` disables notifications).
+
 ### Web Search (`web-search`) — Omarchy only
 - `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, opens the `toolbox.web-search` search box.
 - `./omarchy/web-search/install.sh --check` — Validate the plugin and prerequisites (`jq`, `omarchy-launch-browser`) without installing.
@@ -106,6 +113,13 @@ Guidance for AI coding agents working in this repository.
     - `install.sh` — Stages and validates in a tmpdir, installs and enables the plugin, retires the legacy patched `<username>.menu` clone (marker `.toolbox-ask-agent`), its `~/.local/bin` launcher and extension symlink, then restarts the shell.
     - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
     - `README.md` — Tool documentation.
+  - `omarchy/calendar/` — Plugin `toolbox.calendar` (kind `bar-widget`; `clonedFrom: omarchy.clock`). Read-only Google Calendar events via private iCal addresses:
+    - `manifest.json`, `BarWidget.qml`, `Panel.qml`, `Model.js` — Omarchy's stock clock plus events: the widget runs `sync.py` every 5 minutes and on popup open, watches `events.json`, and appends the next timed event to the label; the panel adds event dots, day selection, and the selected day's event list.
+    - `Events.js` — Pure event math (normalize, per-day overlap, bar label, click URL, sync status); tested by `test_events.js` under node.
+    - `sync.py` — Standard-library ICS fetch/parse with RRULE expansion (DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY with ordinals, BYMONTHDAY, BYMONTH, BYSETPOS, EXDATE, RECURRENCE-ID overrides). HTTPS only; a failing calendar keeps its previous events. File-locked so several bars do not sync at once. Tested by `test_sync.py`.
+    - `notify.sh` — Sends one event notification via `omarchy notification send` (click opens the link), deduplicated by a stamp directory per occurrence under `~/.local/state/toolbox-calendar/notified/`.
+    - `run.sh` — `toolbox calendar` subcommands.
+    - `install.sh`, `test.sh`, `README.md`.
   - `omarchy/web-search/` — Plugin `toolbox.web-search` (kind `overlay`). Internet search via `omarchy-launch-browser`:
     - `manifest.json`, `WebSearch.qml` — Search-box overlay; summon payload `{"query": "..."}` searches immediately.
     - `run.sh` — Entry point; URL-encodes the query and launches the default browser, or opens the search box without a query.

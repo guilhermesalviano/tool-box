@@ -73,6 +73,16 @@ tool-box/
 │   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │   │   └── README.md           # Documentação específica do ask-agent
 │   │
+│   ├── calendar/               # Plugin toolbox.calendar: relógio com eventos do Google Calendar
+│   │   ├── manifest.json       # Manifesto do plugin (substitui o omarchy.clock)
+│   │   ├── BarWidget.qml       # Relógio da barra + próximo evento; roda o sync
+│   │   ├── Panel.qml           # Calendário com os eventos do dia selecionado
+│   │   ├── Events.js           # Lógica pura dos eventos (testada com node)
+│   │   ├── sync.py             # Baixa os endereços iCal e expande eventos recorrentes
+│   │   ├── run.sh              # toolbox calendar add|list|remove|sync|status
+│   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
+│   │   └── README.md           # Documentação específica do calendar
+│   │
 │   └── web-search/             # Plugin toolbox.web-search: caixa de busca na internet
 │       ├── manifest.json       # Manifesto do plugin (overlay)
 │       ├── WebSearch.qml       # Caixa de busca
@@ -203,6 +213,26 @@ sandbox somente-leitura.
 
 Veja `omarchy/ask-agent/README.md` para as variáveis de ambiente e como voltar
 ao menu original.
+
+---
+
+## 📅 Ferramenta: `calendar` (somente Omarchy)
+
+Mostra os eventos do Google Calendar no relógio do Omarchy, **somente leitura**,
+usando o endereço iCal secreto de cada agenda (sem login no Google). A barra
+mostra o próximo evento quando falta menos de uma hora, uma notificação avisa
+30 minutos antes de cada evento, e clicar no relógio abre o calendário com os
+eventos do dia.
+
+```bash
+./omarchy/calendar/install.sh   # instala o plugin toolbox.calendar no lugar do relógio
+./toolbox calendar add          # adiciona uma agenda (pede o endereço iCal secreto)
+./toolbox calendar list         # agendas configuradas, endereços mascarados
+./toolbox calendar status       # último sync, quantidade de eventos, erros
+```
+
+Veja `omarchy/calendar/README.md` para onde achar o endereço no Google Calendar
+e os cuidados de privacidade.
 
 ---
 
