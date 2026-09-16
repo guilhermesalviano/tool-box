@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "toolbox.web-search",
+  "name": "Search Web",
+  "version": "1.0.0",
+  "author": "Tool-Box",
+  "description": "Search the internet in your default browser from a search box",
+  "kinds": [
+    "overlay"
+  ],
+  "entryPoints": {
+    "overlay": "WebSearch.qml"
+  }
+}

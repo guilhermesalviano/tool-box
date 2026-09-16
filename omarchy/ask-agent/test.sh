@@ -6,6 +6,7 @@ trap 'rm -rf -- "$test_dir"' EXIT
 mkdir -p "$test_dir/bin" "$test_dir/tmp" "$test_dir/work"
 export TMPDIR="$test_dir/tmp" TOOLBOX_AGENT_WORKDIR="$test_dir/work"
 export TEST_CAPTURE="$test_dir/prompt" TEST_ARGS="$test_dir/args"
+real_path=$PATH
 export PATH="$test_dir/bin:$PATH"
 cat > "$test_dir/bin/omarchy" <<'EOF'
 #!/bin/bash
@@ -57,5 +58,5 @@ status=0
 wait "$request_pid" || status=$?
 [[ $status == 143 ]] || fail 'Cancellation exit code'
 [[ -z $(ls -A "$TMPDIR") ]] || fail 'Temporary files leaked after cancellation'
-"$tool_dir/install.sh" --check
-echo 'PASS: literal prompts, answer output, blank input, errors, unsupported agent, timeout, cancellation, cleanup, menu compatibility.'
+PATH=$real_path "$tool_dir/install.sh" --check > /dev/null || fail 'Plugin is invalid'
+echo 'PASS: literal prompts, answer output, blank input, errors, unsupported agent, timeout, cancellation, cleanup, plugin manifest.'

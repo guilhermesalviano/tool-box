@@ -62,19 +62,22 @@ tool-box/
 │       ├── data/               # Regra udev, .desktop e ícone
 │       └── README.md           # Documentação específica do swain-macros
 │
-├── omarchy/                    # Ferramentas que só funcionam no Omarchy
-│   ├── ask-agent/              # Ferramenta: Respostas de IA dentro da busca do Omarchy
+├── omarchy/                    # Plugins do shell do Omarchy (cada pasta é um plugin)
+│   ├── ask-agent/              # Plugin toolbox.ask-agent: menu com respostas de IA
+│   │   ├── manifest.json       # Manifesto do plugin (substitui o omarchy.menu)
+│   │   ├── Menu.qml            # Menu do Omarchy com Ask AI, lista de Apps e Search Web
+│   │   ├── AskPane.qml         # Painel de resposta dentro do menu
+│   │   ├── menu.jsonc          # Linhas do menu que o plugin adiciona
 │   │   ├── run.sh              # Abre o painel de resposta (ou --headless para scripts)
 │   │   ├── answer.sh           # Backend Codex (stdout = só a resposta)
-│   │   ├── install.sh          # Clona e aplica o patch no menu do Omarchy
-│   │   ├── menu.patch          # Patch sobre o Menu.qml original do Omarchy
-│   │   ├── AskPane.qml         # Painel de resposta adicionado ao menu
-│   │   ├── omarchy-menu.jsonc  # Extensão de menu compartilhada (Ask AI + Search Web)
+│   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │   │   └── README.md           # Documentação específica do ask-agent
 │   │
-│   └── web-search/             # Ferramenta: Busca na internet a partir do menu do Omarchy
+│   └── web-search/             # Plugin toolbox.web-search: caixa de busca na internet
+│       ├── manifest.json       # Manifesto do plugin (overlay)
+│       ├── WebSearch.qml       # Caixa de busca
 │       ├── run.sh              # Codifica a query e abre o navegador padrão
-│       ├── install.sh          # Cria o launcher e indica a linha do menu
+│       ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │       └── README.md           # Documentação específica do web-search
 │
 ├── logs/                       # Diretório central de logs
@@ -189,8 +192,8 @@ instalado e autenticado (escolhido em **Setup → Default → Agent**), em
 sandbox somente-leitura.
 
 ```bash
-# Configuração inicial (clona e aplica o patch no menu do Omarchy):
-./omarchy/ask-agent/install.sh --check   # só verifica a compatibilidade
+# Configuração inicial (instala o plugin toolbox.ask-agent no lugar do menu):
+./omarchy/ask-agent/install.sh --check   # só valida o plugin
 ./omarchy/ask-agent/install.sh
 
 # Uso:
@@ -207,9 +210,12 @@ ao menu original.
 
 Busca na internet pelo navegador padrão, a partir do menu do Omarchy
 (**Super + Space** → **Search Web**). Também aparece automaticamente quando
-o texto digitado não casa com nenhum app ou configuração.
+o texto digitado não casa com nenhum app ou configuração (com o plugin
+`toolbox.ask-agent` instalado).
 
 ```bash
+./omarchy/web-search/install.sh          # instala o plugin toolbox.web-search
+./toolbox web-search                     # abre a caixa de busca
 ./toolbox web-search 'weather in São Paulo'
 
 # Trocar o buscador (precisa do placeholder literal %s):

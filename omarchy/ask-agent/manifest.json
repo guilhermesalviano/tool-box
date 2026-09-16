@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "toolbox.ask-agent",
+  "name": "Toolbox menu (Ask AI)",
+  "version": "1.0.0",
+  "author": "Tool-Box",
+  "description": "Omarchy menu with inline Ask AI answers, a working Apps list, and Search Web integration",
+  "kinds": [
+    "menu",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "menu": "Menu.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Toolbox menu",
+    "description": "Launches the Omarchy menu",
+    "category": "Compositor",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.menu"
+  }
+}

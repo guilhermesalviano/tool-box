@@ -16,6 +16,11 @@ FocusScope {
   property string pendingQuestion: ""
   readonly property bool busy: request.running
 
+  // Absolute path of a file shipped next to this QML file in the plugin folder.
+  function pluginFile(name) {
+    return decodeURIComponent(String(Qt.resolvedUrl(name)).replace(/^file:\/\//, ""))
+  }
+
   function open(question) {
     answer = ""
     error = ""
@@ -45,7 +50,7 @@ FocusScope {
     elapsed = 0
     cancelled = false
     responseScroll.contentItem.contentY = 0
-    request.command = [Quickshell.env("HOME") + "/.local/bin/toolbox-ask-agent", "--headless", question]
+    request.command = ["bash", pane.pluginFile("answer.sh"), question]
     request.running = true
   }
 

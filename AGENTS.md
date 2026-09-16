@@ -11,7 +11,7 @@ Guidance for AI coding agents working in this repository.
 ## Commands
 
 ### Fresh-machine setup (`./install.sh`)
-- `./install.sh` — Interactive, idempotent setup for a new clone: offers to install shell aliases, checks/offers to install each tool's external dependency (`aria2`, `python3`, `jq`, `ripgrep`), bootstraps the mac-monitor virtualenv, and — only when an `omarchy` CLI is detected — wires up the Ask AI / Search Web menu integrations. Confirms before any system-modifying step (package install, LaunchAgent, shell rc edits); safe to re-run.
+- `./install.sh` — Interactive, idempotent setup for a new clone: offers to install shell aliases, checks/offers to install each tool's external dependency (`aria2`, `python3`, `jq`, `ripgrep`), bootstraps the mac-monitor virtualenv, and — only when an `omarchy` CLI is detected — offers to install the Ask AI / Search Web Omarchy plugins. Confirms before any system-modifying step (package install, LaunchAgent, shell rc edits); safe to re-run.
 
 ### Global CLI (`./toolbox`)
 - `./toolbox list` — List all installed tools and their descriptions.
@@ -40,17 +40,17 @@ Guidance for AI coding agents working in this repository.
 - `./toolbox swain-macros [--background]` — Open the GTK app that maps macros to the Redragon Swain side buttons (`--background` starts hidden).
 
 ### Ask AI (`ask-agent`) — Omarchy only
-- `./toolbox ask-agent [question...]` — Open the inline answer panel inside Omarchy's search (Super + Space). Requires `./omarchy/ask-agent/install.sh` first.
+- `./toolbox ask-agent [question...]` — Open the inline answer panel inside Omarchy's search (Super + Space). Requires the `toolbox.ask-agent` plugin (`./omarchy/ask-agent/install.sh`).
 - `./toolbox ask-agent --headless <question...>` — Print an answer to stdout without opening a window (machine-facing: stdout is only the answer, stderr only errors).
-- `./omarchy/ask-agent/install.sh --check` — Verify the menu patch still applies to the installed Omarchy version, without installing.
-- `./omarchy/ask-agent/install.sh` — Clone Omarchy's menu plugin, apply `menu.patch` + `AskPane.qml`, link `~/.local/bin/toolbox-ask-agent`. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
+- `./omarchy/ask-agent/install.sh --check` — Validate the plugin with `omarchy plugin validate`, without installing.
+- `./omarchy/ask-agent/install.sh` — Copy the plugin to `~/.config/omarchy/plugins/toolbox.ask-agent/`, enable it (it replaces `omarchy.menu`), retire the old `<username>.menu` patch install, and restart the shell. Backs up to `~/.local/state/toolbox-ask-agent/<timestamp>/`.
 - `./omarchy/ask-agent/test.sh` — Local tests; issues no AI requests.
 - Backend is Codex via `mise which codex`, run with a read-only sandbox and ephemeral sessions. Overrides: `TOOLBOX_AGENT_WORKDIR` (default `~/Work`), `TOOLBOX_AGENT_TIMEOUT` (default `180`), `TOOLBOX_AGENT_CODEX_BIN`.
 
 ### Web Search (`web-search`) — Omarchy only
-- `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, the menu opens an inline input field.
-- `./omarchy/web-search/install.sh --check` — Verify prerequisites (`jq`, `rg`, `omarchy-launch-browser`) without installing.
-- `./omarchy/web-search/install.sh` — Link `~/.local/bin/toolbox-web-search` and report how to add the menu row.
+- `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, opens the `toolbox.web-search` search box.
+- `./omarchy/web-search/install.sh --check` — Validate the plugin and prerequisites (`jq`, `omarchy-launch-browser`) without installing.
+- `./omarchy/web-search/install.sh` — Copy the plugin to `~/.config/omarchy/plugins/toolbox.web-search/` and enable it.
 - `TOOLBOX_SEARCH_URL` — URL template with a literal `%s` placeholder (default Google). Must start with `http://` or `https://`; the query is URL-encoded via `jq -sRr @uri` before substitution.
 
 ### Mac Monitor (`mac-monitor`)
@@ -96,18 +96,20 @@ Guidance for AI coding agents working in this repository.
     - `swain_macros/` — `app.py` (GTK4/libadwaita UI), `engine.py` (grabs the mouse via evdev and re-emits events through `uinput`), `macro.py` (macro language parser/player), `config.py` (`~/.config/swain-macros/config.json`, autostart).
     - `data/` — udev rule, `.desktop` template (`@EXEC@` placeholder), app icon.
     - `README.md` — Tool documentation.
-- `omarchy/` — Tools that only work on the Omarchy desktop; dispatched by `./toolbox` just like `tools/`:
-  - `omarchy/ask-agent/` — Omarchy-only: inline AI answers inside the Super + Space search panel:
+- `omarchy/` — Omarchy shell plugins; each folder is a plugin (`manifest.json` + QML) and is also dispatched by `./toolbox` via its `run.sh`. Installers copy only the listed plugin files (no symlinks; `omarchy plugin validate` must pass) to `~/.config/omarchy/plugins/<id>/`:
+  - `omarchy/ask-agent/` — Plugin `toolbox.ask-agent` (kinds `menu`, `bar-widget`; `clonedFrom: omarchy.menu`, so calls to `omarchy.menu` route to it). Inline AI answers inside the Super + Space search panel:
+    - `manifest.json`, `Menu.qml`, `MenuModel.js`, `BarWidget.qml` — Full copy of Omarchy's stock menu plugin plus the toolbox changes (Ask AI mode, `programs` Apps provider, Search Web fallback row, bundled `menu.jsonc` source). Does not receive upstream menu fixes automatically; diff against `/usr/share/omarchy/shell/plugins/menu/` after Omarchy updates.
+    - `AskPane.qml` — The answer pane; runs the plugin's own `answer.sh`.
+    - `menu.jsonc` — Rows the plugin adds (Ask AI, Search Web, the Apps override), merged between Omarchy's defaults and the user extension.
     - `run.sh` — Entry point; summons the menu panel, or `--headless` to delegate to `answer.sh`.
     - `answer.sh` — Machine-facing Codex backend; stdout is only the answer, stderr only errors.
-    - `install.sh` — Stages and validates in a tmpdir, then clones Omarchy's menu plugin and applies the patch. Refuses to overwrite a menu clone it does not own (marker file `.toolbox-ask-agent`).
-    - `menu.patch` / `AskPane.qml` — The patch against Omarchy's stock `Menu.qml`, and the answer pane it adds.
-    - `omarchy-menu.jsonc` — Shared menu extension holding both the `toolbox-ask-agent` and `toolbox-web-search` rows; `install.sh` (root) symlinks `~/.config/omarchy/extensions/omarchy-menu.jsonc` to it.
+    - `install.sh` — Stages and validates in a tmpdir, installs and enables the plugin, retires the legacy patched `<username>.menu` clone (marker `.toolbox-ask-agent`), its `~/.local/bin` launcher and extension symlink, then restarts the shell.
     - `test.sh` — Local tests; issues no AI requests. Not wired into `toolbox`; run directly.
     - `README.md` — Tool documentation.
-  - `omarchy/web-search/` — Omarchy-only: internet search from the menu, via `omarchy-launch-browser`:
-    - `run.sh` — Entry point; URL-encodes the query and launches the default browser.
-    - `install.sh` — Links the launcher and reports the menu row to add. Needs `jq` and `rg`.
+  - `omarchy/web-search/` — Plugin `toolbox.web-search` (kind `overlay`). Internet search via `omarchy-launch-browser`:
+    - `manifest.json`, `WebSearch.qml` — Search-box overlay; summon payload `{"query": "..."}` searches immediately.
+    - `run.sh` — Entry point; URL-encodes the query and launches the default browser, or opens the search box without a query.
+    - `install.sh` — Stages, validates, installs and enables the plugin. Needs `jq`.
     - `test.sh` — Local tests. Not wired into `toolbox`; run directly.
     - `README.md` — Tool documentation.
 - `logs/` — Centralized log directory (gitignored):

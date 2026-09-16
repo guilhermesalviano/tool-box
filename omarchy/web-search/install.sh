@@ -1,35 +1,58 @@
 #!/usr/bin/env bash
+# Install this folder as the toolbox.web-search Omarchy shell plugin.
 set -euo pipefail
 
 tool_dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-launcher="$HOME/.local/bin/toolbox-web-search"
-menu_file="$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"
+plugin_id=$(jq -r .id "$tool_dir/manifest.json")
+target="$HOME/.config/omarchy/plugins/$plugin_id"
+plugin_files=(manifest.json WebSearch.qml run.sh README.md)
 
-check_prerequisites() {
-  [[ -x "$tool_dir/run.sh" ]] || { echo 'run.sh is not executable.' >&2; exit 1; }
-  command -v jq >/dev/null || { echo 'jq is required.' >&2; exit 1; }
-  command -v rg >/dev/null || { echo 'ripgrep (rg) is required.' >&2; exit 1; }
-  command -v omarchy-launch-browser >/dev/null || { echo 'Omarchy browser launcher is unavailable.' >&2; exit 1; }
-}
+check_only=false
+case $# in
+  0) ;;
+  1) [[ $1 == --check ]] || { echo 'Usage: install.sh [--check]' >&2; exit 1; }
+     check_only=true ;;
+  *) echo 'Usage: install.sh [--check]' >&2; exit 1 ;;
+esac
 
-if [[ ${1:-} == --check ]]; then
-  check_prerequisites
-  echo 'Web Search prerequisites are available.'
+for cmd in jq omarchy omarchy-shell omarchy-launch-browser; do
+  command -v "$cmd" >/dev/null || { echo "$cmd is required." >&2; exit 1; }
+done
+
+# Stage exactly the files the plugin needs, then validate before touching anything.
+stage=$(mktemp -d)
+trap 'rm -rf -- "$stage"' EXIT
+for file in "${plugin_files[@]}"; do cp "$tool_dir/$file" "$stage/"; done
+omarchy plugin validate "$stage"
+
+if [[ $check_only == true ]]; then
+  echo "$plugin_id is a valid Omarchy plugin and its prerequisites are available."
   exit 0
 fi
-[[ $# == 0 ]] || { echo 'Usage: install.sh [--check]' >&2; exit 1; }
 
-check_prerequisites
-mkdir -p "$HOME/.local/bin"
-ln -sfn "$tool_dir/run.sh" "$launcher"
+backup="$HOME/.local/state/toolbox-web-search/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$backup"
+[[ ! -e $target ]] || cp -a "$target" "$backup/plugin"
 
-shared_jsonc="$tool_dir/../ask-agent/omarchy-menu.jsonc"
-if [[ -L "$menu_file" && "$(readlink -f "$menu_file")" == "$(readlink -f "$shared_jsonc")" ]]; then
-  echo 'The shared Tool-Box menu file already owns Search Web; refresh it with: omarchy menu refresh'
-elif [[ -f "$menu_file" ]] && rg -q '"toolbox-web-search"\s*:' "$menu_file"; then
-  echo 'Search Web is already present in the Omarchy menu.'
-else
-  echo "Add this row to $menu_file, then run: omarchy menu refresh"
-  printf '%s\n' '  "toolbox-web-search": {"icon":"󰖟","label":"Search Web","description":"Search the internet in your default browser","aliases":["web","internet"],"action":"\"$HOME/.local/bin/toolbox-web-search\""},'
+# Earlier versions linked a launcher into ~/.local/bin; the plugin replaces it.
+legacy_launcher="$HOME/.local/bin/toolbox-web-search"
+if [[ -L $legacy_launcher ]]; then
+  cp -a "$legacy_launcher" "$backup/launcher"
+  rm -- "$legacy_launcher"
 fi
-echo "Installed $launcher"
+
+mkdir -p "$(dirname "$target")"
+rm -rf -- "$target"
+cp -a "$stage" "$target"
+chmod 755 "$target"
+
+omarchy-shell shell rescanPlugins >/dev/null
+# The rescan finishes asynchronously; wait until the shell knows the plugin.
+for _ in {1..50}; do
+  omarchy-shell shell listPlugins | jq -e --arg id "$plugin_id" 'any(.[]; .id == $id)' >/dev/null && break
+  sleep 0.1
+done
+omarchy plugin enable "$plugin_id"
+# The menu shows its Search Web row only while this plugin is installed.
+omarchy menu refresh >/dev/null 2>&1 || true
+printf 'Search Web installed in %s\nBackup: %s\n' "$target" "$backup"

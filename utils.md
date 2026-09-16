@@ -9,38 +9,44 @@
 
 ### Contexto
 
-O menu em uso é um clone do plugin do Omarchy (`~/.config/omarchy/plugins/<usuário>.menu`),
+O menu em uso é o plugin `toolbox.ask-agent` (`~/.config/omarchy/plugins/toolbox.ask-agent`),
 instalado por `omarchy/ask-agent/install.sh`. Por um bug do Omarchy
-([omacom/omarchy#11762](https://github.com/omacom/omarchy/issues/11762)), menus clonados
-não recebem o `appLibrary`, então a lista padrão de apps fica vazia. O `menu.patch` contorna
-isso com um provider `programs` que lê os arquivos `.desktop` direto, e o
-`omarchy-menu.jsonc` troca a entrada `"apps"` do menu para usar esse provider.
+([omacom/omarchy#11762](https://github.com/omacom/omarchy/issues/11762)), menus fora da pasta
+do Omarchy não recebem o `appLibrary`, então a lista padrão de apps fica vazia. O plugin
+contorna isso com um provider `programs` que lê os arquivos `.desktop` direto, e o
+`menu.jsonc` do próprio plugin troca a entrada `"apps"` do menu para usar esse provider.
 
-Por isso o menu depende destes links simbólicos apontando para o repositório:
+O **Search Web** é outro plugin, `toolbox.web-search`. As linhas dele no menu só aparecem
+enquanto ele estiver instalado.
 
-| Link | Destino |
-|---|---|
-| `~/.config/omarchy/extensions/omarchy-menu.jsonc` | `omarchy/ask-agent/omarchy-menu.jsonc` |
-| `~/.local/bin/toolbox-ask-agent` | `omarchy/ask-agent/run.sh` |
-| `~/.local/bin/toolbox-web-search` | `omarchy/web-search/run.sh` |
+Os plugins são **cópias** das pastas do repositório, sem links simbólicos. Mover pastas do
+repo não quebra mais o menu, mas editar arquivos no repo só vale depois de reinstalar.
+
+> Histórico: antes de virar plugin, o menu era um patch num clone `<usuário>.menu` e dependia
+> de links simbólicos para o repo (`~/.config/omarchy/extensions/omarchy-menu.jsonc` e
+> `~/.local/bin/toolbox-*`). Em 2026-09-16 esses links quebraram quando `tools/` virou
+> `omarchy/`, e os apps sumiram. O `install.sh` atual remove essas peças antigas.
 
 ### Causas comuns
 
-1. **Pastas do repositório movidas ou renomeadas** — os links quebram. Foi o que aconteceu
-   quando `tools/ask-agent` e `tools/web-search` foram movidos para `omarchy/`: sem o
-   `omarchy-menu.jsonc`, o menu voltou à lista padrão de apps, que não funciona no clone.
-2. **Atualização do Omarchy** — o `Menu.qml` original pode mudar e o patch parar de aplicar.
+1. **Plugin desativado ou não instalado** — por exemplo, depois de trocar o menu em
+   Setup → Plugins, ou numa máquina nova.
+2. **Atualização do Omarchy** — o menu do plugin é uma cópia do menu original; uma mudança
+   grande no shell do Omarchy pode quebrar a cópia.
+3. **Mudanças no repo ainda não instaladas.**
 
 ### Diagnóstico
 
 ```bash
-# Links quebrados aparecem como BROKEN
-for l in ~/.config/omarchy/extensions/omarchy-menu.jsonc ~/.local/bin/toolbox-*; do
-  printf '%s -> %s ' "$l" "$(readlink "$l")"; [[ -e $l ]] && echo OK || echo BROKEN
-done
+# Os dois plugins existem e estão ativos?
+omarchy-shell shell listPlugins | jq -c '.[] | select(.id | test("toolbox|menu")) | {id, enabled}'
 
-# O patch ainda aplica na versão instalada do Omarchy?
+# Os plugins do repo são válidos?
 omarchy/ask-agent/install.sh --check
+omarchy/web-search/install.sh --check
+
+# Erros de QML ao carregar o menu
+journalctl --user --since "-10min" | grep -iE "toolbox|failed to load|TypeError|ReferenceError"
 ```
 
 ### Solução
@@ -48,20 +54,24 @@ omarchy/ask-agent/install.sh --check
 Na raiz do repositório:
 
 ```bash
-ln -sfn "$PWD/omarchy/ask-agent/omarchy-menu.jsonc" ~/.config/omarchy/extensions/omarchy-menu.jsonc
 omarchy/web-search/install.sh
-omarchy/ask-agent/install.sh   # reinstala o menu, recria o link e reinicia o shell
+omarchy/ask-agent/install.sh   # instala o menu, ativa e reinicia o shell
 ```
 
-Se o `--check` falhar depois de uma atualização do Omarchy, gere o `menu.patch` de novo a
-partir do `/usr/share/omarchy/shell/plugins/menu/Menu.qml` atual antes de reinstalar.
+Backups ficam em `~/.local/state/toolbox-ask-agent/<data>` e
+`~/.local/state/toolbox-web-search/<data>`.
 
-O `install.sh` do ask-agent faz backup do menu anterior em
-`~/.local/state/toolbox-ask-agent/<data>`.
+Se o menu quebrar depois de uma atualização do Omarchy, compare com o original e traga as
+mudanças:
+
+```bash
+diff -u /usr/share/omarchy/shell/plugins/menu/Menu.qml omarchy/ask-agent/Menu.qml
+```
+
+Para voltar ao menu original do Omarchy: `omarchy plugin disable toolbox.ask-agent`.
 
 ### Verificação
 
 Abra o menu, entre em **Apps**, digite `foot` e aperte Enter: um terminal deve abrir e o
-menu deve fechar.
-
-> Dica: sempre que mover pastas de `omarchy/`, rode os dois `install.sh` de novo.
+menu deve fechar. Digite um texto qualquer que não seja app (ex.: `zzqx linux`): deve
+aparecer **Search Web: zzqx linux**.

@@ -1,0 +1,16 @@
+// Menu rows shipped with the toolbox.ask-agent plugin. Menu.qml merges this
+// file between Omarchy's defaults and ~/.config/omarchy/extensions/omarchy-menu.jsonc,
+// so the user extension can still override any of these rows by id.
+{
+  // Enter opens the inline Ask AI pane; Menu.qml intercepts this id, and the
+  // action is only used when the row is launched from elsewhere.
+  "toolbox-ask-agent": {"icon":"󰚩","label":"Ask AI","description":"Read an AI answer here · or type ask <question>","aliases":["ask","ai","ask-agent"],"action":"omarchy-shell shell summon omarchy.menu '{\"mode\":\"ask\"}'"},
+  // Provided by the separate toolbox.web-search plugin; hidden when it is not installed.
+  "toolbox-web-search": {"icon":"󰖟","label":"Search Web","description":"Search the internet in your default browser","aliases":["web","internet"],"action":"omarchy-shell shell summon toolbox.web-search '{}'","when":"[[ -f $HOME/.config/omarchy/plugins/toolbox.web-search/manifest.json ]]"},
+  // Menu plugins outside Omarchy's own folder never receive a working
+  // shell.appLibrary on this Omarchy release, so the stock "apps" provider
+  // always merges zero rows (github.com/omacom/omarchy issues 11762, 10928,
+  // 11171, 11788, and duplicates). Point "apps" at Menu.qml's "programs"
+  // provider, which reads .desktop files directly.
+  "apps": {"icon":"󰀻","label":"Apps","aliases":["app","applications"],"provider":"programs"}
+}

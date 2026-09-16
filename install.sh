@@ -109,63 +109,31 @@ fi
 
 # --- Omarchy (Ask AI + Search Web) -----------------------------------------
 
-section "Integrações do menu do Omarchy (Ask AI, Search Web)"
+section "Plugins do Omarchy (Ask AI, Search Web)"
 if ! have omarchy; then
-  echo "Omarchy não detectado nesta máquina — pulando (essas duas ferramentas só existem lá)."
+  echo "Omarchy não detectado nesta máquina — pulando (esses plugins só existem lá)."
 else
   echo "Omarchy detectado."
-  ok=true
   if ! have jq; then
-    pkg_install jq || ok=false
-  fi
-  if ! have rg; then
-    pkg_install ripgrep || ok=false
+    pkg_install jq || true
   fi
 
   if ! have mise || ! mise which codex >/dev/null 2>&1; then
-    echo "Codex (via mise) não encontrado — necessário só para 'Ask AI'."
-    echo "'Search Web' funciona sem isso. Instale o Codex e rode este script de novo"
-    echo "para habilitar o Ask AI, ou pule por enquanto."
+    echo "Codex (via mise) não encontrado — necessário só para responder no 'Ask AI'."
+    echo "O menu e o 'Search Web' funcionam sem isso. Instale o Codex e rode este"
+    echo "script de novo para habilitar as respostas, ou pule por enquanto."
   fi
 
-  menu_ext="${HOME}/.config/omarchy/extensions/omarchy-menu.jsonc"
-  shared_jsonc="${ROOT_DIR}/omarchy/ask-agent/omarchy-menu.jsonc"
-  has_custom_entries=false
-  if [[ -f "${menu_ext}" && ! -L "${menu_ext}" ]]; then
-    # Considera "customizado" qualquer linha "chave": fora de comentário —
-    # o arquivo padrão do Omarchy só tem exemplos comentados.
-    if grep -vE '^\s*//' "${menu_ext}" | grep -qE '"[A-Za-z0-9_.-]+"\s*:'; then
-      has_custom_entries=true
-    fi
-  fi
-
-  if [[ -L "${menu_ext}" && "$(readlink -f "${menu_ext}")" == "$(readlink -f "${shared_jsonc}")" ]]; then
-    echo "Extensão do menu já aponta para o arquivo compartilhado do Tool-Box."
-  elif [[ "${has_custom_entries}" == true ]]; then
-    echo "Você já tem entradas próprias em ${menu_ext} — não vou sobrescrever."
-    echo "Adicione manualmente as linhas de ${shared_jsonc} lá (veja omarchy/ask-agent/README.md)."
-  elif confirm "Apontar ${menu_ext} para o arquivo compartilhado do Tool-Box (Ask AI + Search Web)?"; then
-    mkdir -p "$(dirname "${menu_ext}")"
-    if [[ -f "${menu_ext}" ]]; then
-      backup="${menu_ext}.bak.$(date +%Y%m%d-%H%M%S)"
-      cp "${menu_ext}" "${backup}"
-      echo "Backup salvo em ${backup}"
-    fi
-    ln -sfn "${shared_jsonc}" "${menu_ext}"
-  else
-    echo "Pulado — os instaladores abaixo vão pedir isso de novo."
-  fi
-
-  if confirm "Instalar 'Ask AI' (clona o plugin de menu do Omarchy)?"; then
-    "${ROOT_DIR}/omarchy/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
-  else
-    echo "Pulado. Rode './omarchy/ask-agent/install.sh' quando quiser."
-  fi
-
-  if confirm "Instalar 'Search Web'?"; then
+  if confirm "Instalar o plugin 'Search Web' (toolbox.web-search)?"; then
     "${ROOT_DIR}/omarchy/web-search/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
     echo "Pulado. Rode './omarchy/web-search/install.sh' quando quiser."
+  fi
+
+  if confirm "Instalar o plugin 'Ask AI' (toolbox.ask-agent, substitui o menu do Omarchy e reinicia o shell)?"; then
+    "${ROOT_DIR}/omarchy/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
+  else
+    echo "Pulado. Rode './omarchy/ask-agent/install.sh' quando quiser."
   fi
 fi
 

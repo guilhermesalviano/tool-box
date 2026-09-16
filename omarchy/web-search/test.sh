@@ -7,13 +7,9 @@ trap 'rm -rf -- "$test_dir"' EXIT
 mkdir -p "$test_dir/bin"
 export PATH="$test_dir/bin:$PATH" CAPTURE="$test_dir/capture"
 
-cat > "$test_dir/bin/omarchy" <<'EOF'
+cat > "$test_dir/bin/omarchy-shell" <<'EOF'
 #!/usr/bin/env bash
-if [[ $1 == menu && $2 == input ]]; then
-  printf '%s\n' 'quotes & spaces/日本語'
-else
-  printf '%s\n' chromium
-fi
+printf '%s\n' "$*" > "$CAPTURE"
 EOF
 cat > "$test_dir/bin/omarchy-launch-browser" <<'EOF'
 #!/usr/bin/env bash
@@ -26,7 +22,7 @@ expected='https://www.google.com/search?q=quotes%20%26%20spaces%2F%E6%97%A5%E6%9
 [[ $(cat "$CAPTURE") == "$expected" ]] || { echo 'Positional query was not encoded correctly.' >&2; exit 1; }
 
 "$tool_dir/run.sh"
-[[ $(cat "$CAPTURE") == "$expected" ]] || { echo 'Menu query was not encoded correctly.' >&2; exit 1; }
+[[ $(cat "$CAPTURE") == "shell summon toolbox.web-search {}" ]] || { echo 'No-query run did not open the plugin search box.' >&2; exit 1; }
 
 if TOOLBOX_SEARCH_URL='ftp://bad/%s' "$tool_dir/run.sh" query 2>"$test_dir/error"; then
   echo 'Invalid URL scheme unexpectedly succeeded.' >&2
@@ -38,4 +34,6 @@ if TOOLBOX_SEARCH_URL='https://example.test/search' "$tool_dir/run.sh" query 2>"
   exit 1
 fi
 
-echo 'PASS: default-browser launch, menu input, URL encoding, and validation.'
+omarchy plugin validate "$tool_dir" || { echo 'Plugin manifest is invalid.' >&2; exit 1; }
+
+echo 'PASS: default-browser launch, plugin search box, URL encoding, validation, and plugin manifest.'
