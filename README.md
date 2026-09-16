@@ -62,6 +62,7 @@ tool-box/
 ├── install.sh                  # Instalação interativa para uma máquina nova
 ├── toolbox                     # CLI mestre para listar, criar e executar qualquer ferramenta
 ├── tools/                      # Diretório de ferramentas modulares e isoladas
+│   ├── README.md               # Documentação das ferramentas de tools/
 │   ├── torrent-dl/             # Ferramenta: Download de torrent via aria2c
 │   │   ├── run.sh              # Script de download (-o/--output, -s/--seed-minutes)
 │   │   └── README.md           # Documentação específica do torrent-dl
@@ -159,53 +160,10 @@ cria em `tools/`.
 
 ---
 
-## 🧲 Ferramenta: `torrent-dl`
+## 🛠️ Ferramentas (`tools/`)
 
-Baixa um torrent (link magnet, URL de `.torrent` ou arquivo `.torrent`
-local) via `aria2c`. Requer `aria2` instalado (`brew install aria2` no
-macOS, `apt-get install aria2` no Linux).
-
-```bash
-./toolbox torrent-dl 'magnet:?xt=urn:btih:...'
-./toolbox torrent-dl 'https://exemplo.com/arquivo.torrent' -o ~/Downloads
-```
-
-Veja `tools/torrent-dl/README.md` para todas as opções.
-
----
-
-## 🧹 Ferramenta: `disk-cleaner`
-
-Libera espaço em disco em macOS ou Linux, limpando caches, lixeira e
-arquivos temporários seguros. Pede confirmação antes de cada etapa.
-
-```bash
-# Interativo (pergunta em cada etapa):
-./toolbox disk-cleaner
-
-# Assumir "sim" em tudo, exceto nas etapas do Docker (que sempre perguntam):
-./toolbox disk-cleaner --yes
-
-# Ver o que seria limpo, sem apagar nada:
-./toolbox disk-cleaner --dry-run
-```
-
-Veja `tools/disk-cleaner/README.md` para a lista completa de etapas.
-
----
-
-## 🔤 Ferramenta: `aliases`
-
-Instala atalhos de shell (`tb`, `tb-clean`, `tb-mon-status`, etc.) para os
-comandos mais usados do Tool-Box.
-
-```bash
-./toolbox aliases install   # adiciona ao ~/.zshrc ou ~/.bashrc/.bash_profile
-./toolbox aliases list      # lista os atalhos disponíveis
-./toolbox aliases uninstall # remove os atalhos
-```
-
-Veja `tools/aliases/README.md` para a lista completa de atalhos.
+A documentação de `torrent-dl`, `disk-cleaner`, `aliases` e `mac-monitor`
+está em [`tools/README.md`](tools/README.md).
 
 ---
 
@@ -287,58 +245,6 @@ TOOLBOX_SEARCH_URL='https://duckduckgo.com/?q=%s' ./toolbox web-search 'linux au
 ```
 
 Veja `omarchy/web-search/README.md` para os detalhes de codificação da query.
-
----
-
-## 🖥️ Ferramenta: `mac-monitor`
-
-Monitora uso de CPU e Memória RAM continuamente via **Glances** e gera relatórios diários agregados via **AWK**.
-
-### Gerar Relatório
-```bash
-# Relatório de hoje:
-./toolbox mac-monitor report
-
-# Relatório de uma data específica (ex: 2026-09-12):
-./toolbox mac-monitor report 2026-09-12
-```
-
-Você também pode executar diretamente o comando AWK bruto sobre o arquivo
-diário (a partir da raiz do repositório):
-```bash
-awk -F, '           
-NR==1 {next}
-{
-  cpu+=$3; mem+=$5; n++
-  if($3>maxcpu) maxcpu=$3
-  if($5>maxmem) maxmem=$5
-}
-END {
-  print "=== Relatório do dia ==="
-  print "Amostras:", n
-  print "CPU média: " cpu/n "%"
-  print "CPU máxima: " maxcpu "%"
-  print "Memória média: " mem/n "%"
-  print "Memória máxima: " maxmem "%"
-}' logs/glances-$(date +%Y-%m-%d).csv
-```
-
-### Gerenciamento do Serviço
-```bash
-# Ver status da execução, PID e amostras de hoje
-./toolbox mac-monitor status
-
-# Acompanhar gravação do CSV em tempo real
-./toolbox mac-monitor logs -f
-
-# Parar / Reiniciar o monitor
-./toolbox mac-monitor stop
-./toolbox mac-monitor restart
-
-# Instalar / Desinstalar como LaunchAgent no macOS (inicia no boot/login)
-./toolbox mac-monitor install-service
-./toolbox mac-monitor uninstall-service
-```
 
 ---
 

@@ -78,6 +78,7 @@ Guidance for AI coding agents working in this repository.
 - `install.sh` — Interactive fresh-machine setup (see above). Not dispatched through `toolbox`; run directly.
 - `toolbox` — Master executable CLI dispatcher. Looks up `tools/<name>/` first, then `apps/<name>/`, then `omarchy/<name>/`, and routes to `manage.sh` or `run.sh`. `list` prints the three groups separately; `new` always scaffolds into `tools/`.
 - `tools/` — Modular tools directory:
+  - `tools/README.md` — User documentation (Portuguese) for the tools in `tools/`; the root `README.md` only links to it.
   - `tools/torrent-dl/` — Torrent downloader (magnet link, `.torrent` URL, or local `.torrent` file) via `aria2c`:
     - `run.sh` — Entry point; `-o/--output`, `-s/--seed-minutes` flags.
     - `README.md` — Tool documentation.
