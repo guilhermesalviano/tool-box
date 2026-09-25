@@ -219,6 +219,39 @@ if have rtk; then
   fi
 fi
 
+# --- Delta (diff do git) ----------------------------------------------------
+#
+# Pager para git diff/log/show com destaque de sintaxe e realce por palavra.
+# O pacote se chama git-delta em todos os gerenciadores; o binário é `delta`.
+# A configuração do git só é oferecida depois que o binário existe — um
+# core.pager apontando para um comando ausente quebra o `git diff`.
+
+section "Delta (diff do git com destaque de sintaxe)"
+if have delta; then
+  echo "delta já está instalado ($(delta --version 2>/dev/null))."
+else
+  echo "delta não encontrado."
+  pkg_install git-delta || true
+fi
+
+if have delta; then
+  current_pager=$(git config --global --get core.pager 2>/dev/null || true)
+  if [[ ${current_pager} == delta* ]]; then
+    echo "O git já usa o delta como pager."
+  else
+    [[ -n ${current_pager} ]] && echo "Pager atual do git: ${current_pager} (será substituído)."
+    if confirm "Configurar o git (global) para usar o delta?"; then
+      git config --global core.pager delta
+      git config --global interactive.diffFilter "delta --color-only"
+      git config --global delta.navigate true
+      git config --global merge.conflictStyle zdiff3
+      echo "Pronto. 'n'/'N' pulam entre arquivos no diff; 'delta --side-by-side' mostra lado a lado."
+    else
+      echo "Pulado. Veja os comandos no README (seção Delta)."
+    fi
+  fi
+fi
+
 # --- Torrent DL ----------------------------------------------------------
 
 section "Torrent DL (aria2)"

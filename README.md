@@ -92,6 +92,32 @@ Reinicie os agentes que estiverem abertos depois do `rtk init`. As
 ferramentas nativas do Claude Code (`Read`, `Grep`, `Glob`) não passam pelo
 hook — só os comandos de shell são comprimidos.
 
+### 🔍 Delta no git diff
+
+O `install.sh` também instala o [delta](https://github.com/dandavison/delta)
+(pacote `git-delta`), um pager para `git diff`, `git log -p` e `git show` com
+destaque de sintaxe, realce das palavras alteradas e números de linha. Depois
+de instalar, pergunta se deve configurar o git global para usá-lo — só nesse
+momento, porque um `core.pager` apontando para um comando que não existe
+quebra o `git diff`. Se já houver outro pager configurado, ele avisa antes de
+trocar.
+
+Para fazer à mão:
+
+```bash
+sudo pacman -S --needed git-delta  # ou: brew install git-delta / sudo apt-get install -y git-delta
+
+git config --global core.pager delta
+git config --global interactive.diffFilter "delta --color-only"   # git add -p colorido
+git config --global delta.navigate true                           # n / N pulam entre arquivos
+git config --global merge.conflictStyle zdiff3
+```
+
+Dicas: `git diff | delta --side-by-side` (ou `git config --global
+delta.side-by-side true`) mostra lado a lado; `git --no-pager diff` desliga o
+delta numa chamada. Para desfazer: `git config --global --unset core.pager` e
+`git config --global --unset interactive.diffFilter`.
+
 ---
 
 ## 📂 Estrutura do Repositório
