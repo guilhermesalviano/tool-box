@@ -110,12 +110,12 @@ sudo pacman -S --needed git-delta  # ou: brew install git-delta / sudo apt-get i
 git config --global core.pager delta
 git config --global interactive.diffFilter "delta --color-only"   # git add -p colorido
 git config --global delta.navigate true                           # n / N pulam entre arquivos
-git config --global merge.conflictStyle zdiff3
+git config --global delta.side-by-side true                      # diff lado a lado
+git config --global diff.algorithm histogram                     # diffs mais legíveis em código movido
 ```
 
-Dicas: `git diff | delta --side-by-side` (ou `git config --global
-delta.side-by-side true`) mostra lado a lado; `git --no-pager diff` desliga o
-delta numa chamada. Para desfazer: `git config --global --unset core.pager` e
+Dicas: em terminal estreito, `git -c delta.side-by-side=false diff` volta ao
+modo de uma coluna; `git --no-pager diff` desliga o delta numa chamada. Para desfazer: `git config --global --unset core.pager` e
 `git config --global --unset interactive.diffFilter`.
 
 ---

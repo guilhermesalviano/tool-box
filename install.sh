@@ -244,8 +244,9 @@ if have delta; then
       git config --global core.pager delta
       git config --global interactive.diffFilter "delta --color-only"
       git config --global delta.navigate true
-      git config --global merge.conflictStyle zdiff3
-      echo "Pronto. 'n'/'N' pulam entre arquivos no diff; 'delta --side-by-side' mostra lado a lado."
+      git config --global delta.side-by-side true
+      git config --global diff.algorithm histogram
+      echo "Pronto. Diff lado a lado; 'n'/'N' pulam entre arquivos."
     else
       echo "Pulado. Veja os comandos no README (seção Delta)."
     fi
