@@ -6,6 +6,7 @@ trap 'rm -rf -- "$test_dir"' EXIT
 mkdir -p "$test_dir/bin" "$test_dir/tmp" "$test_dir/work"
 export TMPDIR="$test_dir/tmp" TOOLBOX_AGENT_WORKDIR="$test_dir/work"
 export TEST_CAPTURE="$test_dir/prompt" TEST_ARGS="$test_dir/args" TEST_CWD="$test_dir/cwd"
+export TEST_DELETED="$test_dir/deleted" TEST_ENV="$test_dir/env"
 real_path=$PATH
 export PATH="$test_dir/bin:$PATH"
 
@@ -14,28 +15,49 @@ cat > "$test_dir/bin/omarchy" <<'EOF'
 #!/bin/bash
 [[ -z ${TEST_AGENT-codex} ]] || printf '%s\n' "${TEST_AGENT-codex}"
 EOF
-# `mise which <agent>` resolves to the matching fake agent.
+# `mise which <agent>` resolves to the matching fake agent; TEST_NO_OPENCODE
+# hides OpenCode (the test PATH then has no real one either).
 cat > "$test_dir/bin/mise" <<'EOF'
 #!/bin/bash
+[[ -z ${TEST_NO_OPENCODE:-} || $2 != opencode ]] || exit 1
 command -v "fake-$2"
 EOF
-# Both fakes record their arguments, working directory and prompt, then answer
-# according to $TEST_MODE. Codex writes its answer to a file; Claude to stdout.
-for agent in codex claude; do
+# The fakes record their arguments, working directory and prompt, then answer
+# according to $TEST_MODE. Codex writes its answer to a file; Claude to stdout;
+# OpenCode prints JSON events on stdout and has its session deleted afterwards.
+for agent in codex claude opencode; do
   cat > "$test_dir/bin/fake-$agent" <<EOF
 #!/bin/bash
 agent=$agent
 EOF
   cat >> "$test_dir/bin/fake-$agent" <<'EOF'
+if [[ $agent == opencode && $1 == --version ]]; then
+  echo "${TEST_OPENCODE_VERSION:-1.0.0}"
+  exit 0
+fi
+if [[ $agent == opencode && $1 == session ]]; then
+  [[ $2 == delete ]] && printf '%s\n' "$3" > "$TEST_DELETED"
+  exit 0
+fi
 printf '%s\n' "$@" > "$TEST_ARGS"
 pwd > "$TEST_CWD"
+printf '%s\n' "${OPENCODE_CONFIG_CONTENT-}" > "$TEST_ENV"
 output=''
 while (( $# )); do
   if [[ $1 == --output-last-message ]]; then output=$2; shift; fi
   shift
 done
 cat > "$TEST_CAPTURE"
-reply() { if [[ $agent == codex ]]; then cat > "$output"; else cat; fi; }
+reply() {
+  case $agent in
+    codex) cat > "$output" ;;
+    claude) cat ;;
+    opencode)
+      echo '{"type":"step_start","sessionID":"ses_fixture","part":{"type":"step-start"}}'
+      jq -Rsc '{type: "text", sessionID: "ses_fixture", part: {type: "text", text: .}}'
+      echo '{"type":"step_finish","sessionID":"ses_fixture","part":{"type":"step-finish"}}' ;;
+  esac
+}
 case ${TEST_MODE:-success} in
   failure) echo 'fixture connection error' >&2; exit 1 ;;
   empty) printf '  \n' | reply ;;
@@ -48,8 +70,8 @@ chmod +x "$test_dir/bin/"*
 fail() { echo "FAIL: $*" >&2; exit 1; }
 question='--inline $(touch /tmp/should-not-exist) "quoted"; 日本語'
 
-for agent in codex claude; do
-  export TEST_AGENT=$agent
+for agent in codex claude opencode; do
+  export TOOLBOX_AGENT=$agent
   "$tool_dir/run.sh" --headless "$question" > "$test_dir/answer"
   [[ $(tail -n 1 "$TEST_CAPTURE") == "$question" ]] || fail "$agent: question was changed"
   [[ $(head -n 1 "$test_dir/answer") == 'Answer with punctuation: $HOME; `echo unsafe`' ]] || fail "$agent: answer was changed"
@@ -76,11 +98,12 @@ for agent in codex claude; do
   ! pgrep -f toolbox-ask-test-sleeper > /dev/null || fail "$agent: agent kept running after cancellation"
   [[ -z $(ls -A "$TMPDIR") ]] || fail "$agent: temporary files leaked after cancellation"
 done
+unset TOOLBOX_AGENT
 
 # Each agent is locked to answering in text.
-TEST_AGENT=codex "$tool_dir/answer.sh" question > /dev/null
+TOOLBOX_AGENT=codex "$tool_dir/answer.sh" question > /dev/null
 rg -q -- '^--sandbox$' "$TEST_ARGS" && rg -q '^read-only$' "$TEST_ARGS" || fail 'codex: read-only sandbox missing'
-TEST_AGENT=claude "$tool_dir/answer.sh" question > /dev/null
+TOOLBOX_AGENT=claude "$tool_dir/answer.sh" question > /dev/null
 mapfile -t claude_args < "$TEST_ARGS"
 [[ ${claude_args[0]} == --print ]] || fail 'claude: --print missing'
 for i in "${!claude_args[@]}"; do
@@ -88,23 +111,37 @@ for i in "${!claude_args[@]}"; do
 done
 [[ ${tools_value-missing} == '' ]] || fail 'claude: tools are not disabled'
 rg -q '^--strict-mcp-config$' "$TEST_ARGS" && rg -q '^--no-session-persistence$' "$TEST_ARGS" || fail 'claude: MCP or session flags missing'
+rm -f "$TEST_DELETED"
+TOOLBOX_AGENT=opencode "$tool_dir/answer.sh" question > /dev/null
+[[ $(head -n 2 "$TEST_ARGS" | tr '\n' ' ') == 'run --pure ' ]] || fail 'opencode: run --pure missing'
+[[ $(jq -c '[.tools["*"], .permission["*"]]' "$TEST_ENV") == '[false,"deny"]' ]] || fail 'opencode: tools are not disabled'
+[[ $(cat "$TEST_DELETED" 2>/dev/null) == ses_fixture ]] || fail 'opencode: session was not deleted'
+# OpenCode 2.x runs its own server, so the config above cannot be bypassed.
+rm -f "$TEST_DELETED"
+TEST_OPENCODE_VERSION='opencode v2.0.0' TOOLBOX_AGENT=opencode "$tool_dir/answer.sh" question > /dev/null
+[[ $(head -n 2 "$TEST_ARGS" | tr '\n' ' ') == 'run --standalone ' ]] || fail 'opencode 2: --standalone missing'
+[[ ! -e $TEST_DELETED ]] || fail 'opencode 2: session delete would start the service'
+
+# OpenCode is the default when installed; otherwise Omarchy's default agent.
+[[ $(TEST_AGENT=claude "$tool_dir/answer.sh" --agent-info) == '{"id":"opencode","name":"OpenCode","inline":true}' ]] || fail 'opencode is not the default'
+[[ $(TEST_NO_OPENCODE=1 TEST_AGENT=claude PATH="$test_dir/bin:/usr/bin" "$tool_dir/answer.sh" --agent-info) == '{"id":"claude","name":"Claude Code","inline":true}' ]] || fail 'omarchy default agent fallback'
 
 # The old Codex-specific override still works.
-TOOLBOX_AGENT_CODEX_BIN="$test_dir/bin/fake-codex" TEST_AGENT=codex PATH="$test_dir/bin:/usr/bin" \
+TOOLBOX_AGENT_CODEX_BIN="$test_dir/bin/fake-codex" TOOLBOX_AGENT=codex PATH="$test_dir/bin:/usr/bin" \
   "$tool_dir/answer.sh" question > /dev/null || fail 'TOOLBOX_AGENT_CODEX_BIN override'
 
 # Other agents are offered their own terminal (exit 3); no agent at all is an error.
 status=0
-TEST_AGENT=gemini "$tool_dir/answer.sh" question > "$test_dir/out" 2> "$test_dir/error" || status=$?
+TOOLBOX_AGENT=gemini "$tool_dir/answer.sh" question > "$test_dir/out" 2> "$test_dir/error" || status=$?
 [[ $status == 3 && ! -s $test_dir/out ]] || fail 'unsupported agent should exit 3 with no answer'
 rg -q 'Open the question in Gemini' "$test_dir/error" || fail 'unsupported agent message'
 status=0
-TEST_AGENT='' "$tool_dir/answer.sh" question 2> "$test_dir/error" || status=$?
+TEST_NO_OPENCODE=1 TEST_AGENT='' PATH="$test_dir/bin:/usr/bin" "$tool_dir/answer.sh" question 2> "$test_dir/error" || status=$?
 [[ $status == 1 ]] && rg -q 'No default agent' "$test_dir/error" || fail 'unset agent message'
 
-[[ $(TEST_AGENT=claude "$tool_dir/answer.sh" --agent-info) == '{"id":"claude","name":"Claude Code","inline":true}' ]] || fail 'agent info: claude'
-[[ $(TEST_AGENT=gemini "$tool_dir/answer.sh" --agent-info) == '{"id":"gemini","name":"Gemini","inline":false}' ]] || fail 'agent info: gemini'
-[[ $(TEST_AGENT='' "$tool_dir/answer.sh" --agent-info) == '{"id":"","name":"","inline":false}' ]] || fail 'agent info: unset'
+[[ $(TOOLBOX_AGENT=claude "$tool_dir/answer.sh" --agent-info) == '{"id":"claude","name":"Claude Code","inline":true}' ]] || fail 'agent info: claude'
+[[ $(TOOLBOX_AGENT=gemini "$tool_dir/answer.sh" --agent-info) == '{"id":"gemini","name":"Gemini","inline":false}' ]] || fail 'agent info: gemini'
+[[ $(TEST_NO_OPENCODE=1 TEST_AGENT='' PATH="$test_dir/bin:/usr/bin" "$tool_dir/answer.sh" --agent-info) == '{"id":"","name":"","inline":false}' ]] || fail 'agent info: unset'
 
 PATH=$real_path "$tool_dir/install.sh" --check > /dev/null || fail 'Plugin is invalid'
-echo 'PASS: codex and claude answers, locked-down flags, errors, timeout, cancellation, cleanup, agent fallback, plugin manifest.'
+echo 'PASS: opencode, codex and claude answers, opencode default and 1.x/2.x flags, locked-down flags, errors, timeout, cancellation, cleanup, agent fallback, plugin manifest.'

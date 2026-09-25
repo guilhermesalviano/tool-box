@@ -9,9 +9,10 @@ nessa distro). Rodam pelo CLI mestre a partir da raiz do repositório:
 ## 🤖 Ferramenta: `ask-agent` (somente Omarchy)
 
 Responde perguntas dentro do próprio painel de busca do Omarchy: aperte
-**Super + Space**, digite `ask <sua pergunta>` e Enter. Usa o agente padrão do
-Omarchy (**Setup → Default → Agent**), já instalado e autenticado. Codex e
-Claude Code respondem dentro do menu, sem poder executar nada; outros agentes
+**Super + Space**, digite `ask <sua pergunta>` e Enter. Usa o **OpenCode** por
+padrão, já instalado e autenticado; sem ele, usa o agente padrão do Omarchy
+(**Setup → Default → Agent**), e `TOOLBOX_AGENT` escolhe outro. OpenCode, Codex
+e Claude Code respondem dentro do menu, sem poder executar nada; outros agentes
 abrem a pergunta no próprio terminal.
 
 ```bash

@@ -270,12 +270,14 @@ else
   fi
 
   agent=$(omarchy default agent 2>/dev/null || true)
-  if [[ -z ${agent} ]]; then
+  if have opencode; then
+    echo "O 'Ask AI' responde com o OpenCode (defina TOOLBOX_AGENT para usar outro agente)."
+  elif [[ -z ${agent} ]]; then
     echo "Nenhum agente padrão no Omarchy — o 'Ask AI' precisa de um para responder."
-    echo "Escolha em Setup → Default → Agent (Codex ou Claude Code respondem dentro do menu)."
-  elif [[ ${agent} != codex && ${agent} != claude ]]; then
+    echo "Instale o OpenCode ou escolha em Setup → Default → Agent (OpenCode, Codex ou Claude Code respondem dentro do menu)."
+  elif [[ ${agent} != codex && ${agent} != claude && ${agent} != opencode ]]; then
     echo "Agente padrão: ${agent}. O 'Ask AI' vai abrir as perguntas no terminal dele;"
-    echo "com Codex ou Claude Code a resposta aparece dentro do menu."
+    echo "com OpenCode, Codex ou Claude Code a resposta aparece dentro do menu."
   fi
 
   if confirm "Instalar o plugin 'Search Web' (toolbox.web-search)?"; then

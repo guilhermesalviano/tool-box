@@ -1,14 +1,36 @@
 #!/usr/bin/env bash
 # Machine-facing backend: stdout is only the answer, stderr is only an error.
 #
-#   answer.sh <question...>   Answer with Omarchy's default agent.
-#   answer.sh --agent-info    Print {"id","name","inline"} for the default agent.
+#   answer.sh <question...>   Answer with the Ask AI agent (see below).
+#   answer.sh --agent-info    Print {"id","name","inline"} for that agent.
 #
 # Exit codes: 0 answered, 1 failed, 3 the agent has no inline mode here (the
 # caller can open the question in the agent's own terminal instead).
 set -euo pipefail
 
-agent=${TOOLBOX_AGENT:-$(omarchy default agent 2>/dev/null || true)}
+# Resolve an already installed executable; Omarchy's wrappers run an update
+# check on every invocation, which should not happen for a search query.
+# OpenCode is looked up as mise's own `opencode` tool first (what Omarchy's
+# launcher runs): `mise which` can return an unrelated npm-installed CLI.
+find_bin() {
+  local dir
+  if [[ $1 == opencode ]] && dir=$(mise where opencode 2>/dev/null) && [[ -x $dir/opencode ]]; then
+    echo "$dir/opencode"
+  else
+    mise which "$1" 2>/dev/null || command -v "$1" 2>/dev/null
+  fi
+}
+
+# The agent is $TOOLBOX_AGENT, else OpenCode when installed, else Omarchy's
+# default agent.
+agent=${TOOLBOX_AGENT:-}
+if [[ -z $agent ]]; then
+  if find_bin opencode > /dev/null; then
+    agent=opencode
+  else
+    agent=$(omarchy default agent 2>/dev/null || true)
+  fi
+fi
 
 agent_name() {
   case $1 in
@@ -32,7 +54,7 @@ agent_name() {
 # Agents with a one-shot mode that can be locked to answering in text only.
 # Anything else is still usable through `omarchy agent prompt`.
 inline_supported() {
-  [[ $1 == codex || $1 == claude ]]
+  [[ $1 == codex || $1 == claude || $1 == opencode ]]
 }
 
 if [[ ${1:-} == --agent-info ]]; then
@@ -55,12 +77,10 @@ if ! inline_supported "$agent"; then
   exit 3
 fi
 
-# Resolve an already installed executable; Omarchy's wrappers run an update
-# check on every invocation, which should not happen for a search query.
 agent_bin=${TOOLBOX_AGENT_BIN:-}
 [[ -n $agent_bin || $agent != codex ]] || agent_bin=${TOOLBOX_AGENT_CODEX_BIN:-}
 if [[ -z $agent_bin ]]; then
-  agent_bin=$(mise which "$agent" 2>/dev/null || command -v "$agent" 2>/dev/null) || {
+  agent_bin=$(find_bin "$agent") || {
     printf '%s is not installed. Install it through Setup → Default → Agent, or set TOOLBOX_AGENT_BIN.\n' "$name" >&2
     exit 1
   }
@@ -100,6 +120,21 @@ case $agent in
     command=("$agent_bin" --print --tools "" --strict-mcp-config --no-session-persistence
       --output-format text)
     answer_from=stdout ;;
+  opencode)
+    # Every tool (MCP included) is switched off and every permission denied, so
+    # OpenCode can only reply in text. 1.x: --pure skips external plugins.
+    # 2.x: --standalone, since the shared background service would not see this
+    # config. mise installs live in a folder named after the version, which
+    # avoids 1.x's slow start just to ask `--version`.
+    export OPENCODE_CONFIG_CONTENT='{"tools":{"*":false},"permission":{"*":"deny"}}'
+    opencode_version=$(basename "$(dirname "$(readlink -f "$agent_bin")")")
+    [[ $opencode_version =~ ^[0-9]+\. ]] || opencode_version=$("$agent_bin" --version 2>/dev/null || true)
+    if [[ $opencode_version =~ ^v?1\. ]]; then
+      command=("$agent_bin" run --pure --format json)
+    else
+      command=("$agent_bin" run --standalone --format json)
+    fi
+    answer_from=opencode ;;
 esac
 
 # No subshell: `child` must be the timeout process so cancelling reaches the agent.
@@ -109,7 +144,17 @@ child=$!
 status=0
 wait "$child" || status=$?
 child=''
-[[ $answer_from == file ]] || mv "$scratch/stdout" "$scratch/answer"
+case $answer_from in
+  stdout) mv "$scratch/stdout" "$scratch/answer" ;;
+  opencode)
+    jq -Rrj 'fromjson? | select(.type == "text") | .part.text // empty' "$scratch/stdout" > "$scratch/answer" || true
+    jq -Rr 'fromjson? | select(.type == "error") | .error.data.message // .error.name // empty' \
+      "$scratch/stdout" >> "$scratch/error" 2>/dev/null || true
+    # The JSON events carry the session id; 1.x deletes it again. 2.x keeps it:
+    # its `session delete` would start the background service.
+    session=$(jq -Rrn 'first(inputs | fromjson? | .sessionID // empty)' "$scratch/stdout" 2>/dev/null || true)
+    [[ -z $session || ${command[2]} != --pure ]] || timeout 15s "$agent_bin" session delete "$session" > /dev/null 2>&1 || true ;;
+esac
 if (( status == 124 || status == 137 )); then
   printf 'The request timed out after %s seconds. Try a shorter question or retry.\n' "$limit" >&2
   exit 1
@@ -120,6 +165,7 @@ elif (( status != 0 )); then
   exit 1
 elif [[ ! -s $scratch/answer || -z $(tr -d '[:space:]' < "$scratch/answer") ]]; then
   printf '%s returned no answer. Please retry.\n' "$name" >&2
+  tail -c 2500 "$scratch/error" >&2
   exit 1
 fi
 cat "$scratch/answer"

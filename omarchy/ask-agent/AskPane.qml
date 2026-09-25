@@ -15,8 +15,8 @@ FocusScope {
   property bool cancelled: false
   property int elapsed: 0
   property string pendingQuestion: ""
-  // The default agent, re-read on every open so changing it in Setup takes
-  // effect on the next question. answer.sh exits 3 when that agent has no
+  // The answering agent (OpenCode by default, see answer.sh), re-read on every
+  // open so changing it takes effect on the next question. answer.sh exits 3 when that agent has no
   // inline mode; the question can then be opened in the agent's own terminal.
   property string agentId: ""
   property string agentName: ""
