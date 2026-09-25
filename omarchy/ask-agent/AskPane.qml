@@ -66,6 +66,16 @@ FocusScope {
     request.running = true
   }
 
+  // Enter asks; Shift+Enter falls through so the text area inserts a newline.
+  function submitKey(event) {
+    if (event.modifiers & Qt.ShiftModifier) {
+      event.accepted = false
+      return
+    }
+    submit()
+    event.accepted = true
+  }
+
   function openInAgent() {
     var question = lastQuestion || questionInput.text.trim()
     if (!question) return
@@ -166,36 +176,49 @@ FocusScope {
     }
   }
 
-  Controls.TextField {
-    id: questionInput
+  // Long questions wrap onto new lines and the box grows with them, up to a
+  // third of the pane; past that it scrolls. Enter asks, Shift+Enter adds a line.
+  Controls.ScrollView {
+    id: questionScroll
     anchors.top: heading.bottom
     anchors.topMargin: Style.spacing.md
     width: parent.width
-    placeholderText: "Ask a question…"
-    color: Color.menu.text
-    placeholderTextColor: Qt.alpha(Color.menu.text, 0.5)
-    selectionColor: Color.menu.selectedBackground
-    selectedTextColor: Color.menu.selectedText
-    font.family: Style.font.menuFamily
-    font.pixelSize: Style.font.body
-    padding: Style.space(12)
-    selectByMouse: true
-    readOnly: pane.busy
-    onAccepted: pane.submit()
+    height: Math.min(questionInput.implicitHeight, pane.height / 3)
+    contentWidth: availableWidth
+    clip: true
     background: Rectangle {
       color: "transparent"
       radius: Style.cornerRadius
       border.width: 1
       border.color: Color.menu.border
     }
+
+    Controls.TextArea {
+      id: questionInput
+      placeholderText: "Ask a question…"
+      color: Color.menu.text
+      placeholderTextColor: Qt.alpha(Color.menu.text, 0.5)
+      selectionColor: Color.menu.selectedBackground
+      selectedTextColor: Color.menu.selectedText
+      font.family: Style.font.menuFamily
+      font.pixelSize: Style.font.body
+      padding: Style.space(12)
+      wrapMode: TextEdit.Wrap
+      textFormat: TextEdit.PlainText
+      selectByMouse: true
+      readOnly: pane.busy
+      background: null
+      Keys.onReturnPressed: function(event) { pane.submitKey(event) }
+      Keys.onEnterPressed: function(event) { pane.submitKey(event) }
+    }
   }
 
   Text {
     id: status
-    anchors.top: questionInput.bottom
+    anchors.top: questionScroll.bottom
     anchors.topMargin: Style.spacing.md
     width: parent.width
-    text: pane.busy ? "Thinking… " + pane.elapsed + "s" : pane.error ? "Unable to answer" : pane.answer ? "Answer" : "Enter to ask · Esc to return to search"
+    text: pane.busy ? "Thinking… " + pane.elapsed + "s" : pane.error ? "Unable to answer" : pane.answer ? "Answer" : "Enter to ask · Shift+Enter for a new line · Esc to return to search"
     color: Color.menu.text
     opacity: 0.6
     font.family: Style.font.menuFamily
