@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "toolbox.cpu-temp",
+  "name": "CPU temperature",
+  "version": "1.0.0",
+  "author": "Tool-Box",
+  "description": "The CPU temperature, always in the bar",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "CPU temperature",
+    "description": "The CPU package temperature, in the urgent colour when it runs hot; click for every core, right click for btop",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "schema": [
+      {
+        "key": "refreshSeconds",
+        "type": "number",
+        "label": "Read the temperature every this many seconds (minimum 1)",
+        "defaultValue": 2
+      },
+      {
+        "key": "alertAt",
+        "type": "number",
+        "label": "Urgent colour at this many °C (0 never)",
+        "defaultValue": 85
+      }
+    ]
+  }
+}

@@ -60,6 +60,12 @@ Guidance for AI coding agents working in this repository.
 - `./omarchy/orca/test.sh` — Node tests for `Model.js`, closed-Orca snapshot, plugin validation. Does not need Orca running.
 - Bar setting: `refreshSeconds` (default 10, minimum 3; the open panel refreshes every 3 s).
 
+### CPU Temp (`cpu-temp`) — Omarchy only
+- `./toolbox cpu-temp [status]` — CPU package and per-core temperatures in the terminal. `json` prints the raw sensor list.
+- `./omarchy/cpu-temp/install.sh [--check]` — Validate, copy to `~/.config/omarchy/plugins/toolbox.cpu-temp/`, enable, and place it after `io.github.kaiizu.runcat` (else on the right) on first install.
+- `./omarchy/cpu-temp/test.sh` — Node tests for `Model.js`, `sensors.sh` against a fake `/sys/class` (`TOOLBOX_CPUTEMP_SYSFS`), plugin validation.
+- Bar settings: `refreshSeconds` (default 2, minimum 1), `alertAt` (°C, default 85, `0` never turns urgent).
+
 ### Web Search (`web-search`) — Omarchy only
 - `./toolbox web-search [query...]` — Search the internet in Omarchy's default browser. With no query, opens the `toolbox.web-search` search box.
 - `./omarchy/web-search/install.sh --check` — Validate the plugin and prerequisites (`jq`, `omarchy-launch-browser`) without installing.
@@ -129,6 +135,11 @@ Guidance for AI coding agents working in this repository.
     - `notify.sh` — Sends one event notification via `omarchy notification send` (click opens the link), deduplicated by a stamp directory per occurrence under `~/.local/state/toolbox-calendar/notified/`.
     - `run.sh` — `toolbox calendar` subcommands.
     - `install.sh`, `test.sh`, `README.md`.
+  - `omarchy/cpu-temp/` — Plugin `toolbox.cpu-temp` (kind `bar-widget`). CPU temperature always in the bar, read-only:
+    - `manifest.json`, `Panel.qml` — Bar button (thermometer glyph filling towards the sensor's crit limit + package °C, urgent colour at `alertAt`, hidden when no sensor) and dropdown with every core; right click opens btop. Runs `sensors.sh` once, then reads the primary sensor file with a `FileView` every `refreshSeconds` (no process per reading); re-runs discovery when the file stops reading. The open panel re-runs `sensors.sh` every 2 s.
+    - `sensors.sh` — Finds CPU hwmon sensors by driver (`coretemp`, `k10temp`, `zenpower`, `cpu_thermal`), else a CPU thermal zone; prints `{source, sensors: [{label, path, celsius, max, crit}]}`. Always exits 0.
+    - `Model.js` — Pure logic: primary sensor (`Package id`, `Tdie`, `Tctl`…, else hottest), glyph, bar text, alert. Tested by `test_model.js`.
+    - `run.sh`, `install.sh`, `test.sh`, `README.md`.
   - `omarchy/orca/` — Plugin `toolbox.orca` (kind `bar-widget`). Orca IDE workspaces and running agents, read-only:
     - `manifest.json`, `Panel.qml` — Bar button (`󰉋 <workspaces>  󰚩 <agents>`, urgent colour when an agent is `blocked`/`waiting`, hidden while Orca is closed) and dropdown list; row click runs `focus.sh`.
     - `snapshot.sh` — Calls Orca's CLI shim (`~/.config/orca/linux-orca-cli-shim/orca`, override `TOOLBOX_ORCA_CLI`): `worktree ps --json` + `terminal list --json`, merged with `jq`. Always exits 0; `{"running": false, "error": ...}` when Orca is closed. The shim only works while the Orca process it was written for is alive.

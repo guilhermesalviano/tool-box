@@ -50,6 +50,23 @@ e os cuidados de privacidade.
 
 ---
 
+## 🌡️ Ferramenta: `cpu-temp` (somente Omarchy)
+
+Mostra sempre a temperatura da CPU na barra (` 72°`), com um termômetro que
+enche até o limite crítico do sensor. Fica na cor de alerta a partir de 85 °C
+(configurável em `alertAt`). Clicar abre a temperatura de cada núcleo; o botão
+direito abre o `btop`.
+
+```bash
+./omarchy/cpu-temp/install.sh   # instala o plugin toolbox.cpu-temp e adiciona à barra
+./toolbox cpu-temp              # temperatura do pacote e de cada núcleo, no terminal
+```
+
+Veja [`cpu-temp/README.md`](cpu-temp/README.md) para as configurações e como
+os sensores são encontrados.
+
+---
+
 ## 🐋 Ferramenta: `orca` (somente Omarchy)
 
 Mostra na barra os workspaces abertos no Orca e quantos agentes estão rodando

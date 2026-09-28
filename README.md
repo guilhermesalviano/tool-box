@@ -184,6 +184,15 @@ tool-box/
 │   │   ├── install.sh          # Valida e copia o plugin para ~/.config/omarchy/plugins
 │   │   └── README.md           # Documentação específica do calendar
 │   │
+│   ├── cpu-temp/               # Plugin toolbox.cpu-temp: temperatura da CPU sempre na barra
+│   │   ├── manifest.json       # Manifesto do plugin (bar-widget)
+│   │   ├── Panel.qml           # Botão da barra + temperatura de cada núcleo
+│   │   ├── Model.js            # Lógica pura (sensor principal, ícone, alerta; testada com node)
+│   │   ├── sensors.sh          # Acha os sensores da CPU em /sys/class/hwmon e imprime JSON
+│   │   ├── run.sh              # toolbox cpu-temp status|json
+│   │   ├── install.sh          # Valida, copia e adiciona o plugin à barra
+│   │   └── README.md           # Documentação específica do cpu-temp
+│   │
 │   ├── orca/                   # Plugin toolbox.orca: workspaces e agentes do Orca na barra
 │   │   ├── manifest.json       # Manifesto do plugin (bar-widget)
 │   │   ├── Panel.qml           # Botão da barra + lista de workspaces e agentes
@@ -252,7 +261,7 @@ A documentação de `swain-macros` está em [`apps/README.md`](apps/README.md).
 
 ## 🟢 Plugins Omarchy (`omarchy/`)
 
-A documentação de `ask-agent`, `calendar`, `orca` e `web-search` está em
+A documentação de `ask-agent`, `calendar`, `cpu-temp`, `orca` e `web-search` está em
 [`omarchy/README.md`](omarchy/README.md).
 
 ---

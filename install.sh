@@ -336,6 +336,12 @@ else
     echo "Pulado. Rode './omarchy/orca/install.sh' quando quiser."
   fi
 
+  if confirm "Instalar o plugin 'CPU Temp' (toolbox.cpu-temp, temperatura da CPU sempre na barra)?"; then
+    "${ROOT_DIR}/omarchy/cpu-temp/install.sh" || echo "Falhou — veja a mensagem acima." >&2
+  else
+    echo "Pulado. Rode './omarchy/cpu-temp/install.sh' quando quiser."
+  fi
+
   if confirm "Instalar o plugin 'Ask AI' (toolbox.ask-agent, substitui o menu do Omarchy e reinicia o shell)?"; then
     "${ROOT_DIR}/omarchy/ask-agent/install.sh" || echo "Falhou — veja a mensagem acima." >&2
   else
